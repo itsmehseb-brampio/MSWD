@@ -83,7 +83,7 @@ $detail_categories = [
 
 function upsertDetails($conn, $barangay_id, $data) {
     $fields = array_keys($data);
-    $check = $conn->prepare("SELECT detail_id FROM barangay_details WHERE barangay_id = ?");
+    $check = $conn->prepare("SELECT barangay_id FROM barangay_details WHERE barangay_id = ?");
     $check->bind_param("i", $barangay_id);
     $check->execute();
     $exists = $check->get_result()->num_rows > 0;
@@ -110,7 +110,7 @@ function upsertDetails($conn, $barangay_id, $data) {
 
 function upsertContacts($conn, $barangay_id, $data) {
     $fields = array_keys($data);
-    $check = $conn->prepare("SELECT id FROM barangay_contacts WHERE barangay_id = ?");
+    $check = $conn->prepare("SELECT barangay_id FROM barangay_contacts WHERE barangay_id = ?");
     $check->bind_param("i", $barangay_id);
     $check->execute();
     $exists = $check->get_result()->num_rows > 0;

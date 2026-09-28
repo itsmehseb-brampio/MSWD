@@ -436,16 +436,6 @@ tr.data-row:hover { background:#f0f7ff; }
                         <div class="chart-empty" id="popChartEmpty"><i class="fas fa-users"></i>No barangay demographics yet</div>
                     </div>
                     <div class="chart-card">
-                        <div class="card-header"><i class="fas fa-clipboard-check" style="color:#0072C6;"></i> Disaster Reports by Status</div>
-                        <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
-                        <div class="chart-empty" id="statusChartEmpty"><i class="fas fa-clipboard-check"></i>No disaster reports yet</div>
-                    </div>
-                    <div class="chart-card">
-                        <div class="card-header"><i class="fas fa-house-damage" style="color:#dc3545;"></i> Damage Extent (Totally vs Partially)</div>
-                        <div class="chart-wrap"><canvas id="damageChart"></canvas></div>
-                        <div class="chart-empty" id="damageChartEmpty"><i class="fas fa-house-damage"></i>No damage data yet</div>
-                    </div>
-                    <div class="chart-card">
                         <div class="card-header"><i class="fas fa-file-alt" style="color:#fd7e14;"></i> Disaster Reports by Barangay</div>
                         <div class="chart-wrap"><canvas id="reportChart"></canvas></div>
                         <div class="chart-empty" id="reportChartEmpty"><i class="fas fa-file-alt"></i>No reports yet</div>
@@ -454,6 +444,17 @@ tr.data-row:hover { background:#f0f7ff; }
                         <div class="card-header"><i class="fas fa-chart-line" style="color:#6f42c1;"></i> Status by Barangay</div>
                         <div class="chart-wrap"><canvas id="statusByBrgyChart"></canvas></div>
                         <div class="chart-empty" id="statusByBrgyChartEmpty"><i class="fas fa-chart-line"></i>No reports yet</div>
+                    </div>
+                    <br>
+                                        <div class="chart-card">
+                        <div class="card-header"><i class="fas fa-clipboard-check" style="color:#0072C6;"></i> Disaster Reports by Status</div>
+                        <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
+                        <div class="chart-empty" id="statusChartEmpty"><i class="fas fa-clipboard-check"></i>No disaster reports yet</div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="card-header"><i class="fas fa-house-damage" style="color:#dc3545;"></i> Damage Extent (Totally vs Partially)</div>
+                        <div class="chart-wrap"><canvas id="damageChart"></canvas></div>
+                        <div class="chart-empty" id="damageChartEmpty"><i class="fas fa-house-damage"></i>No damage data yet</div>
                     </div>
                 </div>
 

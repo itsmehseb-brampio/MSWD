@@ -11,6 +11,9 @@ class BarangayOverviewController extends Controller
     public function index()
     {
         $barangay = Auth::guard('barangay')->user();
+        if (!$barangay->hasPerm('view_barangay_info') && !$barangay->hasPerm('view_dashboard')) {
+            abort(403, 'You do not have permission to view barangay information.');
+        }
         $detail = BarangayDetail::where('barangay_id', $barangay->barangay_id)->first();
 
         $detailMeta = [

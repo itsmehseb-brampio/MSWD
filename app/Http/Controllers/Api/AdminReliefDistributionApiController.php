@@ -5,11 +5,17 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ReliefDistributionReport;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class AdminReliefDistributionApiController extends Controller
 {
     public function handle(Request $request, $action)
     {
+        $admin = Auth::guard('admin')->user();
+        if (!$admin->hasPerm('manage_relief')) {
+            return response()->json(['ok' => false, 'error' => 'You do not have permission to manage relief goods.'], 403);
+        }
+
         switch ($action) {
             case 'list':
                 $reports = ReliefDistributionReport::with(['documents', 'barangay'])

@@ -12,6 +12,9 @@ class BarangayReliefController extends Controller
     public function index()
     {
         $barangay = Auth::guard('barangay')->user();
+        if (!$barangay->hasPerm('confirm_relief') && !$barangay->hasPerm('view_municipal_contacts')) {
+            abort(403, 'You do not have permission to view relief goods.');
+        }
         $id = $barangay->barangay_id;
 
         $schedules = ReliefSchedule::where(function ($q) use ($id) {

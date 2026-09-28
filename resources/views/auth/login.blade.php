@@ -96,8 +96,8 @@ body {
         <form method="POST" action="{{ route('login.post') }}">
             @csrf
             <div class="form-group">
-                <label><i class="fas fa-user"></i> Username / Barangay Name</label>
-                <input type="text" name="username" placeholder="Enter employee username or barangay name" value="{{ old('username') }}" list="barangay-names" autocomplete="off" required>
+                <label><i class="fas fa-user"></i> Username</label>
+                <input type="text" name="username" placeholder="Enter employee username or barangay username" value="{{ old('username') }}" list="barangay-names" autocomplete="off" required>
                 <datalist id="barangay-names">
                     @foreach ($barangays as $barangay)
                         <option value="{{ $barangay }}"></option>

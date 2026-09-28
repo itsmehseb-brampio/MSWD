@@ -6,11 +6,17 @@ use App\Models\Barangay;
 use App\Models\DisasterFormatField;
 use App\Models\DisasterReport;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class DisasterController extends Controller
 {
     public function format(Request $request)
     {
+        $admin = Auth::guard('admin')->user();
+        if (!$admin->hasPerm('manage_disaster_format')) {
+            abort(403, 'You do not have permission to manage the disaster format.');
+        }
+
         $fields = DisasterFormatField::orderBy('field_order')->get();
         $brgyList = Barangay::orderBy('barangay_name')->get(['barangay_id', 'barangay_name', 'disaster_open']);
         return view('admin.disaster-format', compact('fields', 'brgyList'));
@@ -18,6 +24,11 @@ class DisasterController extends Controller
 
     public function formatStore(Request $request)
     {
+        $admin = Auth::guard('admin')->user();
+        if (!$admin->hasPerm('manage_disaster_format')) {
+            abort(403, 'You do not have permission to manage the disaster format.');
+        }
+
         switch ($request->action) {
             case 'add_field':
                 $label = trim($request->field_label);
@@ -75,6 +86,7 @@ class DisasterController extends Controller
 
     public function pending(Request $request)
     {
+        $this->checkReviewPermission();
         $reports = $this->queryReports('pending', $request->search);
         $counts = $this->statusCounts();
         return view('admin.disaster-reports', [
@@ -88,6 +100,7 @@ class DisasterController extends Controller
 
     public function approved(Request $request)
     {
+        $this->checkReviewPermission();
         $reports = $this->queryReports('approved', $request->search);
         $counts = $this->statusCounts();
         return view('admin.disaster-reports', [
@@ -101,6 +114,7 @@ class DisasterController extends Controller
 
     public function declined(Request $request)
     {
+        $this->checkReviewPermission();
         $reports = DisasterReport::with('barangay')
             ->whereIn('status', ['declined', 'cancelled'])
             ->search($request->search)
@@ -118,6 +132,7 @@ class DisasterController extends Controller
 
     public function reedit(Request $request)
     {
+        $this->checkReviewPermission();
         $reports = $this->queryReports('reedit', $request->search);
         $counts = $this->statusCounts();
         return view('admin.disaster-reports', [
@@ -131,6 +146,7 @@ class DisasterController extends Controller
 
     public function history(Request $request)
     {
+        $this->checkReviewPermission();
         $reports = DisasterReport::with('barangay')
             ->search($request->search)
             ->orderByDesc('created_at')
@@ -147,6 +163,7 @@ class DisasterController extends Controller
 
     public function review(Request $request)
     {
+        $this->checkReviewPermission();
         $request->validate([
             'id' => 'required|exists:disaster_reports,report_id',
             'action' => 'required|in:approved,declined,reedit',
@@ -171,6 +188,14 @@ class DisasterController extends Controller
         }
 
         return back()->with('success', $msg);
+    }
+
+    private function checkReviewPermission(): void
+    {
+        $admin = Auth::guard('admin')->user();
+        if (!$admin->hasPerm('review_disaster_reports')) {
+            abort(403, 'You do not have permission to review disaster reports.');
+        }
     }
 
     private function queryReports($status, $search)

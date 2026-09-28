@@ -5,11 +5,17 @@ namespace App\Http\Controllers;
 use App\Models\Barangay;
 use App\Models\BarangayDetail;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class HazardMapController extends Controller
 {
     public function index()
     {
+        $admin = Auth::guard('admin')->user();
+        if (!$admin->hasPerm('view_hazard_map')) {
+            abort(403, 'You do not have permission to view hazard maps.');
+        }
+
         $barangays = Barangay::orderBy('barangay_name')->get();
 
         $rows = [];

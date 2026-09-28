@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\InviteController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminAccountsController;
+use App\Http\Controllers\AccountManagerController;
 use App\Http\Controllers\BarangayManagementController;
 use App\Http\Controllers\MunicipalContactsController;
 use App\Http\Controllers\ContactController;
@@ -36,6 +38,10 @@ Route::get('/login', [LoginController::class, 'show'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.post');
 Route::get('/logout', [LoginController::class, 'logout'])->name('logout');
 
+// Public invitation sign-up for invited (read-only) user accounts
+Route::get('/invite/{token}', [InviteController::class, 'signup'])->name('invite.signup');
+Route::post('/invite/{token}', [InviteController::class, 'complete'])->name('invite.complete');
+
 // ============== MSWD / ADMIN ROUTES ==============
 Route::prefix('admin')->group(function () {
     Route::get('/', fn () => redirect()->route('admin.dashboard'));
@@ -56,8 +62,18 @@ Route::prefix('admin')->group(function () {
         Route::post('/admins/update', [AdminAccountsController::class, 'update'])->name('admin.admins.update');
         Route::post('/admins/delete', [AdminAccountsController::class, 'destroy'])->name('admin.admins.delete');
 
+        Route::get('/roles', [AccountManagerController::class, 'index'])->name('admin.roles');
+        Route::post('/roles', [AccountManagerController::class, 'store'])->name('admin.roles.store');
+        Route::post('/roles/update', [AccountManagerController::class, 'update'])->name('admin.roles.update');
+        Route::post('/roles/delete', [AccountManagerController::class, 'destroy'])->name('admin.roles.delete');
+        Route::post('/roles/resend-invite', [AccountManagerController::class, 'resendInvite'])->name('admin.roles.invite');
+
         Route::get('/barangays', [BarangayManagementController::class, 'index'])->name('admin.barangay');
         Route::post('/barangays', [BarangayManagementController::class, 'store'])->name('admin.barangay.store');
+        Route::post('/barangays/update', [BarangayManagementController::class, 'update'])->name('admin.barangay.update');
+        Route::post('/barangays/delete', [BarangayManagementController::class, 'destroy'])->name('admin.barangay.delete');
+
+        Route::post('/barangays/toggle-disaster', [BarangayManagementController::class, 'toggleDisaster'])->name('admin.barangay.toggle_disaster');
 
         Route::get('/municipal-contacts', [MunicipalContactsController::class, 'index'])->name('admin.municipal');
         Route::post('/municipal-contacts', [MunicipalContactsController::class, 'update'])->name('admin.municipal.update');

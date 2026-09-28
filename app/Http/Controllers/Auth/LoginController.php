@@ -12,7 +12,8 @@ class LoginController extends Controller
     {
         $barangays = \App\Models\Barangay::query()
             ->orderBy('barangay_name')
-            ->pluck('barangay_name')
+            ->pluck('username')
+            ->filter()
             ->unique()
             ->values()
             ->all();
@@ -32,14 +33,27 @@ class LoginController extends Controller
             'password' => $credentials['password'],
         ])) {
             $request->session()->regenerate();
+            $user = Auth::guard('admin')->user();
+            if (!$user->hasAnyRole(['admin', 'user'])) {
+                Auth::guard('admin')->logout();
+                return back()->withErrors(['message' => 'You do not have permission to access this account!'])->withInput();
+            }
             return redirect()->route('admin.dashboard');
         }
 
         if (Auth::guard('barangay')->attempt([
+            'username' => $credentials['username'],
+            'password' => $credentials['password'],
+        ]) || Auth::guard('barangay')->attempt([
             'barangay_name' => $credentials['username'],
             'password' => $credentials['password'],
         ])) {
             $request->session()->regenerate();
+            $user = Auth::guard('barangay')->user();
+            if (!$user->hasAnyRole(['barangay', 'user'])) {
+                Auth::guard('barangay')->logout();
+                return back()->withErrors(['message' => 'You do not have permission to access this account!'])->withInput();
+            }
             return redirect()->route('barangay.dashboard');
         }
 

@@ -151,7 +151,7 @@ let lastMsgCount = 0;
 function toggleDropdown(){document.getElementById("dropdownMenu").classList.toggle("show");}
 window.onclick=function(e){if(!e.target.closest('.admin-profile'))document.getElementById("dropdownMenu").classList.remove("show");}
 
-function heartbeat(){ fetch('message_api.php?action=heartbeat').then(r=>r.json()).catch(()=>{}); }
+function heartbeat(){ fetch('message_api.php?role=admin&action=heartbeat&t='+Date.now()).then(r=>r.json()).catch(()=>{}); }
 
 function initials(name){
     name=(name||'?').trim();
@@ -182,7 +182,7 @@ function fmtTime(t){
 
 /* ---- ACCOUNTS PANEL ---- */
 function loadAccounts(){
-    fetch('message_api.php?action=group_accounts')
+    fetch('message_api.php?role=admin&action=group_accounts&t='+Date.now())
         .then(r=>r.json())
         .then(data=>{ accounts=data; renderAccounts(); renderHeaderAvatars(); })
         .catch(()=>{});
@@ -225,7 +225,7 @@ function renderHeaderAvatars(){
 
 /* ---- GROUP CHAT ---- */
 function loadGroup(){
-    fetch('message_api.php?action=group_fetch')
+    fetch('message_api.php?role=admin&action=group_fetch&t='+Date.now())
         .then(r=>r.json())
         .then(data=>{
             renderGroup(data.messages||[]);
@@ -266,6 +266,7 @@ function sendGroup(){
     document.getElementById('sendBtn').disabled=true;
 
     const fd=new FormData();
+    fd.append('role','admin');
     fd.append('action','group_send');
     fd.append('message',msg);
 

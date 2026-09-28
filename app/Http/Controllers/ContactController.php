@@ -8,11 +8,17 @@ use App\Models\BarangayDetail;
 use App\Models\BarangayEditLog;
 use App\Models\MunicipalContact;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ContactController extends Controller
 {
     public function index(Request $request)
     {
+        $admin = Auth::guard('admin')->user();
+        if (!$admin->hasPerm('view_barangay_info') && !$admin->hasPerm('manage_municipal_info')) {
+            abort(403, 'You do not have permission to view contact information.');
+        }
+
         $barangays = Barangay::orderBy('barangay_name')->get();
         $name = $request->query('barangay_name');
         $selected = null;

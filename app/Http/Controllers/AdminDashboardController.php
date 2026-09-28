@@ -8,11 +8,17 @@ use App\Models\BarangayContact;
 use App\Models\DisasterReport;
 use App\Models\ReliefSchedule;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class AdminDashboardController extends Controller
 {
     public function index()
     {
+        $admin = Auth::guard('admin')->user();
+        if (!$admin->hasPerm('view_dashboard')) {
+            abort(403, 'You do not have permission to access the dashboard.');
+        }
+
         $barangays = Barangay::query()
             ->leftJoin('barangay_details', 'barangays.barangay_id', '=', 'barangay_details.barangay_id')
             ->select('barangays.*', 'barangay_details.*')

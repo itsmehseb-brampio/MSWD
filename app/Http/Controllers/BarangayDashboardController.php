@@ -14,6 +14,9 @@ class BarangayDashboardController extends Controller
     public function index()
     {
         $barangay = Auth::guard('barangay')->user();
+        if (!$barangay->hasPerm('view_dashboard')) {
+            abort(403, 'You do not have permission to access the dashboard.');
+        }
         $id = $barangay->barangay_id;
 
         $detail = BarangayDetail::where('barangay_id', $id)->first();

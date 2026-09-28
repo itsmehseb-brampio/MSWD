@@ -13,6 +13,9 @@ class BarangayDisasterController extends Controller
     public function apply()
     {
         $barangay = Auth::guard('barangay')->user();
+        if (!$barangay->hasPerm('submit_disaster_report')) {
+            abort(403, 'You do not have permission to submit a disaster report.');
+        }
         $details = BarangayDetail::where('barangay_id', $barangay->barangay_id)->first();
         $isOpen = (bool) $barangay->disaster_open;
 
@@ -30,6 +33,9 @@ class BarangayDisasterController extends Controller
     public function store(Request $request)
     {
         $barangay = Auth::guard('barangay')->user();
+        if (!$barangay->hasPerm('submit_disaster_report')) {
+            abort(403, 'You do not have permission to submit a disaster report.');
+        }
         $id = $barangay->barangay_id;
 
         if (!(bool) $barangay->disaster_open) {
@@ -118,6 +124,9 @@ class BarangayDisasterController extends Controller
     public function edit(Request $request, DisasterReport $report)
     {
         $barangay = Auth::guard('barangay')->user();
+        if (!$barangay->hasPerm('edit_disaster_report')) {
+            abort(403, 'You do not have permission to edit disaster reports.');
+        }
         if ((int) $report->barangay_id !== (int) $barangay->barangay_id) {
             return redirect()->route('barangay.disaster.history');
         }
@@ -130,6 +139,9 @@ class BarangayDisasterController extends Controller
     public function update(Request $request, DisasterReport $report)
     {
         $barangay = Auth::guard('barangay')->user();
+        if (!$barangay->hasPerm('edit_disaster_report')) {
+            abort(403, 'You do not have permission to edit disaster reports.');
+        }
         if ((int) $report->barangay_id !== (int) $barangay->barangay_id) {
             return redirect()->route('barangay.disaster.history');
         }
@@ -188,6 +200,9 @@ class BarangayDisasterController extends Controller
         bool $isReedit = false
     ) {
         $barangay = Auth::guard('barangay')->user();
+        if (!$barangay->hasPerm('submit_disaster_report') && !$barangay->hasPerm('edit_disaster_report')) {
+            abort(403, 'You do not have permission to view disaster reports.');
+        }
         $id = $barangay->barangay_id;
 
         $query = DisasterReport::where('barangay_id', $id);

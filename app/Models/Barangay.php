@@ -5,14 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 class Barangay extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles;
 
     protected $primaryKey = 'barangay_id';
 
-    protected $fillable = ['barangay_name', 'address', 'password', 'last_active', 'disaster_open'];
+    protected $fillable = ['barangay_name', 'username', 'address', 'password', 'last_active', 'disaster_open'];
 
     protected $hidden = ['password', 'remember_token'];
 
@@ -38,5 +39,11 @@ class Barangay extends Authenticatable
     public function reports()
     {
         return $this->hasMany(DisasterReport::class, 'barangay_id', 'barangay_id');
+    }
+
+    public function hasPerm(string $permission): bool
+    {
+        $this->loadMissing('permissions');
+        return $this->permissions->contains('name', $permission);
     }
 }

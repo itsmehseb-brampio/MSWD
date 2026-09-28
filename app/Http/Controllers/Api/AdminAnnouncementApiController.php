@@ -14,6 +14,9 @@ class AdminAnnouncementApiController extends Controller
     public function handle(Request $request, $action)
     {
         $admin = Auth::guard('admin')->user();
+        if (!$admin->hasPerm('manage_announcements')) {
+            return response()->json(['ok' => false, 'error' => 'You do not have permission to manage announcements.'], 403);
+        }
 
         switch ($action) {
             case 'list':

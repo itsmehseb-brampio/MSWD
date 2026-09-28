@@ -22,3 +22,13 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Database backups - never commit a dump
+/storage/app/private/backups
+/public/backups
+/backups
+*.sql
+!database/*.sql
+
+# Backup runtime state
+_backup_*.cnf

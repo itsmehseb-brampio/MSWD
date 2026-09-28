@@ -1,0 +1,51 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: dockerfile
+      target: app
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: mapayanan_db
+      DB_USERNAME: mswd
+      DB_PASSWORD: mswdpassword
+    depends_on:
+      - db
+    volumes:
+      - app_storage:/var/www/html/storage
+      - app_uploads:/var/www/html/public/uploads
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: .
+      dockerfile: dockerfile
+      target: web
+    depends_on:
+      - app
+    ports:
+      - "8080:80"
+    volumes:
+      - app_storage:/var/www/html/storage:ro
+      - app_uploads:/var/www/html/public/uploads:ro
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.4
+    container_name: mswd-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: mapayanan_db
+      MYSQL_USER: mswd
+      MYSQL_PASSWORD: mswdpassword
+      MYSQL_ROOT_PASSWORD: rootpassword
+    volumes:
+      - mswd_db_data:/var/lib/mysql
+
+volumes:
+  app_storage:
+  app_uploads:
+  mswd_db_data:

@@ -1,8 +1,8 @@
 <?php
-$host = "localhost";
-$dbname = "mapayanan_db";
-$user = "root";
-$pass = ""; // your MySQL password
+$host = getenv('DB_HOST') ?: 'localhost';
+$dbname = getenv('DB_DATABASE') ?: 'mapayanan_db';
+$user = getenv('DB_USERNAME') ?: 'root';
+$pass = getenv('DB_PASSWORD') ?: '';
 
 $conn = new mysqli($host, $user, $pass, $dbname);
 

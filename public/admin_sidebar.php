@@ -1,5 +1,32 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<?php $current_page = basename($_SERVER['PHP_SELF']); ?>
+<?php
+$current_page = basename($_SERVER['PHP_SELF']);
+
+/* Scheduled backups. Silent, best-effort, never breaks the page. */
+require_once __DIR__ . '/backup_auto.php';
+
+/*
+ * The admin_id session guard only proves the account lives in the `admins`
+ * table - invited read-only "user" accounts pass it too. Anything sensitive
+ * (database backups) is restricted to accounts that actually hold the admin role.
+ */
+$is_super_admin = false;
+if (isset($conn) && !empty($_SESSION['admin_id'])) {
+    $role_stmt = $conn->prepare(
+        "SELECT r.name FROM model_has_roles mr
+           JOIN roles r ON r.id = mr.role_id
+          WHERE mr.model_type = 'App\\\\Models\\\\Admin'
+            AND mr.model_id = ? AND r.name = 'admin'
+          LIMIT 1"
+    );
+    if ($role_stmt) {
+        $role_stmt->bind_param('i', $_SESSION['admin_id']);
+        $role_stmt->execute();
+        $role_res = $role_stmt->get_result();
+        $is_super_admin = $role_res && $role_res->num_rows > 0;
+    }
+}
+?>
 
 <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
@@ -20,16 +47,15 @@
 
         <li>
             <a href="admin_admins.php" class="sidebar-btn <?php echo $current_page === 'admin_admins.php' ? 'active' : ''; ?>">
-                <i class="fas fa-user-cog"></i> <span>Admin Accounts</span>
+                <i class="fas fa-user-cog"></i> <span> Accounts</span>
             </a>
         </li>
 
-        <li class="has-submenu <?php echo in_array($current_page, ['admin_barangay.php','admin_municipal_contacts.php','admin_contact.php']) ? 'active' : ''; ?>">
+        <li class="has-submenu <?php echo in_array($current_page, ['admin_municipal_contacts.php','admin_contact.php']) ? 'active' : ''; ?>">
             <a href="javascript:void(0)" onclick="toggleMenu(this)" class="sidebar-btn">
                 <i class="fas fa-building"></i> <span>Barangay Management</span>
             </a>
             <ul class="submenu">
-                <li><a href="admin_barangay.php" class="sidebar-btn <?php echo $current_page === 'admin_barangay.php' ? 'active' : ''; ?>"><i class="fas fa-list"></i> <span>Barangay Accounts</span></a></li>
                 <li><a href="admin_municipal_contacts.php" class="sidebar-btn <?php echo $current_page === 'admin_municipal_contacts.php' ? 'active' : ''; ?>"><i class="fas fa-phone-alt"></i> <span>Municipal Contacts</span></a></li>
                 <li><a href="admin_contact.php" class="sidebar-btn <?php echo $current_page === 'admin_contact.php' ? 'active' : ''; ?>"><i class="fas fa-phone"></i> <span>Contact Info</span></a></li>
             </ul>
@@ -68,6 +94,8 @@
                 <i class="fas fa-boxes"></i> <span>Relief Goods Distribution</span>
             </a>
         </li>
+
+        
     </ul>
 
     <div class="sidebar-footer">

@@ -11,6 +11,9 @@ class BarangayHazardMapController extends Controller
     public function edit()
     {
         $barangay = Auth::guard('barangay')->user();
+        if (!$barangay->hasPerm('edit_hazard_map') && !$barangay->hasPerm('view_hazard_map')) {
+            abort(403, 'You do not have permission to view/edit the hazard map.');
+        }
 
         return view('barangay.hazard-map', ['mapData' => $this->mapData($barangay)]);
     }
@@ -18,6 +21,9 @@ class BarangayHazardMapController extends Controller
     public function view()
     {
         $barangay = Auth::guard('barangay')->user();
+        if (!$barangay->hasPerm('view_hazard_map')) {
+            abort(403, 'You do not have permission to view the hazard map.');
+        }
 
         return view('barangay.hazard-map-view', ['mapData' => $this->mapData($barangay)]);
     }
@@ -25,6 +31,9 @@ class BarangayHazardMapController extends Controller
     public function update(Request $request)
     {
         $barangay = Auth::guard('barangay')->user();
+        if (!$barangay->hasPerm('edit_hazard_map')) {
+            abort(403, 'You do not have permission to edit the hazard map.');
+        }
         $detail = BarangayDetail::firstOrNew(['barangay_id' => $barangay->barangay_id]);
 
         $this->applyMapPayload($detail, $request);

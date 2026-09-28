@@ -307,11 +307,11 @@ body {
             <div class="role-toggle">
                 <label class="active" id="labelAdmin">
                     <input type="radio" name="role" value="admin" checked onchange="switchRole('admin')">
-                    <i class="fas fa-user-tie"></i> Employee
+                    <i class="fas fa-user-tie"></i> MSWD Staff
                 </label>
                 <label id="labelBarangay">
                     <input type="radio" name="role" value="barangay" onchange="switchRole('barangay')">
-                    <i class="fas fa-building"></i> Barangay
+                    <i class="fas fa-building"></i> Barangay Staff
                 </label>
             </div>
 

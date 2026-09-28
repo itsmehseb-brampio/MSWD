@@ -12,6 +12,9 @@ class BarangayAnnouncementApiController extends Controller
     public function handle(Request $request, $action)
     {
         $barangay = Auth::guard('barangay')->user();
+        if (!$barangay->hasPerm('view_announcements')) {
+            return response()->json(['ok' => false, 'error' => 'You do not have permission to view announcements.'], 403);
+        }
         $id = $barangay->barangay_id;
 
         switch ($action) {

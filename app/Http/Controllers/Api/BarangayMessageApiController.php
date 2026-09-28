@@ -15,6 +15,9 @@ class BarangayMessageApiController extends Controller
     public function handle(Request $request, $action)
     {
         $barangay = Auth::guard('barangay')->user();
+        if (!$barangay->hasPerm('manage_messages')) {
+            return response()->json(['ok' => false, 'error' => 'You do not have permission to access messages.'], 403);
+        }
         $id = $barangay->barangay_id;
 
         switch ($action) {

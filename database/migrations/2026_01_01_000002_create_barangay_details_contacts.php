@@ -71,6 +71,9 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('barangay_id');
             $table->string('field_name');
+            $table->string('field_label')->nullable();
+            $table->string('old_value')->nullable();
+            $table->string('new_value')->nullable();
             $table->timestamp('edited_at');
             $table->foreign('barangay_id')->references('barangay_id')->on('barangays')->cascadeOnDelete();
         });

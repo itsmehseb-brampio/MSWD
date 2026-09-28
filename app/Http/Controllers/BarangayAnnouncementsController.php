@@ -11,6 +11,9 @@ class BarangayAnnouncementsController extends Controller
     public function index()
     {
         $barangay = Auth::guard('barangay')->user();
+        if (!$barangay->hasPerm('view_announcements')) {
+            abort(403, 'You do not have permission to view announcements.');
+        }
         $id = $barangay->barangay_id;
 
         $announcements = Announcement::with('admin')

@@ -16,6 +16,9 @@ class AdminMessageApiController extends Controller
     public function handle(Request $request, $action)
     {
         $admin = Auth::guard('admin')->user();
+        if (!$admin->hasPerm('manage_messages')) {
+            return response()->json(['ok' => false, 'error' => 'You do not have permission to access messages.'], 403);
+        }
 
         switch ($action) {
             case 'heartbeat':

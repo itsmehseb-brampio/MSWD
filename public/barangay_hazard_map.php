@@ -9,7 +9,7 @@ require 'db.php';
 $barangay_id = intval($_SESSION['barangay_id']);
 $barangay_name = $_SESSION['barangay_name'] ?? '';
 
-$detail = $conn->query("SELECT map_lat, map_lng, map_zoom, hazard_polygons, hazard_points, risk_level FROM barangay_details WHERE barangay_id = $barangay_id")->fetch_assoc();
+$detail = $conn->query("SELECT map_lat, map_lng, map_zoom, hazard_polygons, hazard_points, risk_level, hazard_map_updated_at FROM barangay_details WHERE barangay_id = $barangay_id")->fetch_assoc();
 
 $mapData = [
     'lat' => null, 'lng' => null, 'zoom' => 14,

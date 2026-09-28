@@ -8,6 +8,7 @@ use App\Models\DisasterFormatField;
 use App\Models\MunicipalContact;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
@@ -32,21 +33,65 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
+        $this->call(RolesAndPermissionsSeeder::class);
+
         if (Admin::where('username', 'admin')->doesntExist()) {
             Admin::create([
+                'name' => 'MSWD Admin',
                 'username' => 'admin',
                 'password' => 'admin123',
             ]);
+        }
+
+        foreach (Admin::all() as $admin) {
+            if (empty($admin->name)) {
+                $admin->name = 'MSWD Admin';
+                $admin->save();
+            }
+        }
+
+        $adminRole = Role::where('name', 'admin')->first();
+        if ($adminRole) {
+            foreach (Admin::all() as $admin) {
+                if ($admin->roles->isEmpty()) {
+                    $admin->syncRoles([$adminRole]);
+                }
+                if ($admin->permissions()->exists() === false) {
+                    $rolePerms = $admin->roles->flatMap(fn ($r) => $r->permissions->pluck('name'))->unique()->values()->all();
+                    $admin->syncPermissions($rolePerms);
+                }
+            }
         }
 
         foreach ($this->barangays as $name) {
             if (!Barangay::where('barangay_name', $name)->exists()) {
                 Barangay::create([
                     'barangay_name' => $name,
+                    'username' => str_replace(' ', '_', $name),
                     'address' => 'Brgy. ' . $name . ', Malilipot, Albay',
                     'password' => 'barangay123',
                     'disaster_open' => 1,
                 ]);
+            }
+        }
+
+        foreach (Barangay::all() as $b) {
+            if (empty($b->username)) {
+                $b->username = str_replace(' ', '_', $b->barangay_name);
+                $b->save();
+            }
+        }
+
+        $barangayRole = Role::where('name', 'barangay')->first();
+        if ($barangayRole) {
+            foreach (Barangay::all() as $b) {
+                if ($b->roles->isEmpty()) {
+                    $b->syncRoles([$barangayRole]);
+                }
+                if ($b->permissions()->exists() === false) {
+                    $rolePerms = $b->roles->flatMap(fn ($r) => $r->permissions->pluck('name'))->unique()->values()->all();
+                    $b->syncPermissions($rolePerms);
+                }
             }
         }
 

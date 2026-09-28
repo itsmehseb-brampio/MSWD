@@ -71,6 +71,9 @@ class BarangayInfoController extends Controller
     public function index()
     {
         $barangay = Auth::guard('barangay')->user();
+        if (!$barangay->hasPerm('view_barangay_info') && !$barangay->hasPerm('edit_barangay_info')) {
+            abort(403, 'You do not have permission to view barangay information.');
+        }
         $id = $barangay->barangay_id;
 
         $detail = BarangayDetail::where('barangay_id', $id)->first();
@@ -117,6 +120,9 @@ class BarangayInfoController extends Controller
     public function update(Request $request)
     {
         $barangay = Auth::guard('barangay')->user();
+        if (!$barangay->hasPerm('edit_barangay_info')) {
+            abort(403, 'You do not have permission to edit barangay information.');
+        }
         $id = $barangay->barangay_id;
 
         $detail = BarangayDetail::firstOrNew(['barangay_id' => $id]);

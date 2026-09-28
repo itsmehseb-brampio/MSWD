@@ -12,6 +12,9 @@ class BarangayReliefApiController extends Controller
     public function handle(Request $request, $action)
     {
         $barangay = Auth::guard('barangay')->user();
+        if (!$barangay->hasPerm('confirm_relief') && !$barangay->hasPerm('view_municipal_contacts')) {
+            return response()->json(['ok' => false, 'error' => 'You do not have permission to view relief goods.'], 403);
+        }
         $id = $barangay->barangay_id;
 
         switch ($action) {

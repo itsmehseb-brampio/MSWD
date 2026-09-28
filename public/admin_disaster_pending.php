@@ -174,6 +174,23 @@ tr td:first-child{font-weight:600;color:#333;}
 .status-reedit:hover,.status-reedit.active{background:#6f42c1;color:white;}
 .status-history{background:#d1ecf1;color:#0c5460;}
 .status-history:hover,.status-history.active{background:#0072C6;color:white;}
+
+@media print{
+    @page{size:A4 portrait;margin:12mm;}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    html,body{background:#fff!important;min-height:auto;}
+    .sidebar,.header,.tabs-bar,.status-nav,.search-row,.dchart-wrap,.bond-actions,.bond-sep,.bond-page-label,.modal-overlay{display:none!important;}
+    .wrapper{display:block!important;min-height:auto;}
+    .main-content{margin-left:0!important;min-height:auto;}
+    .tab-content{display:none!important;}
+    .tab-content.active{display:block!important;}
+    .content,.tab-content>div{padding:0!important;}
+    .page-card{box-shadow:none!important;}
+    .bond-paper{max-width:none;width:100%;margin:0;padding:0;box-shadow:none;}
+    .bond-annex{page-break-before:always;break-before:page;}
+    .bond-table,.bond-desc,.bond-pg2,.bond-sig,.bond-b2b{page-break-inside:avoid;break-inside:avoid;}
+    .bond-sig{padding:0;}
+}
 </style>
 </head>
 <body>
@@ -242,6 +259,7 @@ tr td:first-child{font-weight:600;color:#333;}
                                 <td>
                                     <div class="action-cell">
                                         <button class="btn-action btn-view" data-report='<?php echo htmlspecialchars(json_encode($row), ENT_QUOTES); ?>' onclick='openReportTab(JSON.parse(this.dataset.report))'><i class="fas fa-eye"></i> View</button>
+                                        <button class="btn-action btn-print" data-report='<?php echo htmlspecialchars(json_encode($row), ENT_QUOTES); ?>' onclick='printReport(JSON.parse(this.dataset.report))'><i class="fas fa-file-pdf"></i> Print PDF</button>
                                     </div>
                                 </td>
                             </tr>
@@ -287,6 +305,7 @@ tr td:first-child{font-weight:600;color:#333;}
 
 <script>
 let openReportTabs = {};
+let reportCache = {};
 let currentDeclineId = null;
 let currentReeditId = null;
 
@@ -357,8 +376,8 @@ function makeBondHTML(r) {
     const declineReason = r.decline_reason ? '<div style="background:#f8d7da;border:1px solid #f5c6cb;border-radius:6px;padding:12px 16px;margin-bottom:20px;"><strong style="color:#721c24;"><i class="fas fa-exclamation-circle"></i> Decline Reason:</strong><p style="color:#721c24;margin-top:5px;font-size:13px;">' + esc(r.decline_reason) + '</p></div>' : '';
 
     return `<div class="bond-paper">
-        <div style="text-align:right;margin-bottom:10px;display:flex;gap:8px;justify-content:flex-end;">
-            <button onclick="window.print()" style="padding:8px 16px;background:#0072C6;color:white;border:none;border-radius:6px;font-weight:600;font-size:0.85rem;cursor:pointer;display:inline-flex;align-items:center;gap:5px;"><i class="fas fa-print"></i> Print</button>
+        <div class="bond-actions" style="text-align:right;margin-bottom:10px;display:flex;gap:8px;justify-content:flex-end;">
+            <button onclick="printReportById(${r.report_id})" style="padding:8px 16px;background:#0072C6;color:white;border:none;border-radius:6px;font-weight:600;font-size:0.85rem;cursor:pointer;display:inline-flex;align-items:center;gap:5px;"><i class="fas fa-file-pdf"></i> Print PDF</button>
             <button onclick="approveReport(${r.report_id})" style="padding:8px 16px;background:#28a745;color:white;border:none;border-radius:6px;font-weight:600;font-size:0.85rem;cursor:pointer;display:inline-flex;align-items:center;gap:5px;"><i class="fas fa-check"></i> Approve</button>
             <button onclick="openReeditModal(${r.report_id})" style="padding:8px 16px;background:#6f42c1;color:white;border:none;border-radius:6px;font-weight:600;font-size:0.85rem;cursor:pointer;display:inline-flex;align-items:center;gap:5px;"><i class="fas fa-redo"></i> Re-edit</button>
             <button onclick="openDeclineModal(${r.report_id})" style="padding:8px 16px;background:#dc3545;color:white;border:none;border-radius:6px;font-weight:600;font-size:0.85rem;cursor:pointer;display:inline-flex;align-items:center;gap:5px;"><i class="fas fa-times"></i> Decline</button>
@@ -462,9 +481,39 @@ function makeBondHTML(r) {
 
 function esc(s) { return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : 'N/A'; }
 
+function printReport(r) {
+    const id = r.report_id;
+    const listWasActive = document.getElementById('viewList').classList.contains('active');
+    const view = document.getElementById('reportView_' + id);
+    const isActive = view && view.classList.contains('active') && view.innerHTML.trim() !== '';
+
+    if (!isActive) {
+        openReportTab(r);
+    } else {
+        const tab = document.getElementById('tab_report_' + id);
+        if (tab) tab.click();
+    }
+
+    let restored = false;
+    const restore = function () {
+        if (restored) return;
+        restored = true;
+        if (listWasActive) { closeReportTab(id); showListView(); }
+    };
+
+    window.addEventListener('afterprint', restore, { once: true });
+    window.print();
+    setTimeout(restore, 1000);
+}
+
+function printReportById(id) {
+    if (reportCache[id]) printReport(reportCache[id]);
+}
+
 function openReportTab(r) {
     const id = r.report_id;
     const name = r.household_head || r.format_no || 'Report';
+    reportCache[id] = r;
 
     document.querySelectorAll('.tab-content').forEach(v => v.classList.remove('active'));
     let view = document.getElementById('reportView_' + id);

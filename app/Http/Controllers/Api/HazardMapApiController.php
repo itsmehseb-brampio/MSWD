@@ -12,6 +12,9 @@ class HazardMapApiController extends Controller
     public function handle(Request $request, $action)
     {
         $barangay = Auth::guard('barangay')->user();
+        if (!$barangay->hasPerm('edit_hazard_map')) {
+            return response()->json(['ok' => false, 'error' => 'You do not have permission to edit the hazard map.'], 403);
+        }
 
         switch ($action) {
             case 'save':

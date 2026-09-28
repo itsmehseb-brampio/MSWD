@@ -10,12 +10,18 @@ use App\Models\ReliefItem;
 use App\Models\ReliefSchedule;
 use App\Models\ReliefScheduleTarget;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class AdminReliefApiController extends Controller
 {
     public function handle(Request $request, $action)
     {
+        $admin = Auth::guard('admin')->user();
+        if (!$admin->hasPerm('manage_relief')) {
+            return response()->json(['ok' => false, 'error' => 'You do not have permission to manage relief goods.'], 403);
+        }
+
         switch ($action) {
             case 'list':
                 $lookup = Barangay::with('detail')->orderBy('barangay_name')->get()->keyBy('barangay_id');
