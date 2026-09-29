@@ -1,13 +1,13 @@
 <?php
 
-$host = getenv('MYSQLHOST');
-$port = getenv('MYSQLPORT') ?: 3306;
-$dbname = getenv('MYSQLDATABASE');
-$user = getenv('MYSQLUSER');
-$pass = getenv('MYSQLPASSWORD');
+$host = getenv('DB_HOST');
+$port = getenv('DB_PORT') ?: 3306;
+$dbname = getenv('DB_DATABASE');
+$user = getenv('DB_USERNAME');
+$pass = getenv('DB_PASSWORD');
 
 if (!$host || !$dbname || !$user || !$pass) {
-    die("Railway MySQL variables are missing.");
+    die("Database variables are missing.");
 }
 
 $conn = new mysqli(
