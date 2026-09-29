@@ -6,6 +6,10 @@ $dbname = getenv('MYSQLDATABASE');
 $user = getenv('MYSQLUSER');
 $pass = getenv('MYSQLPASSWORD');
 
+if (!$host || !$dbname || !$user || !$pass) {
+    die("Railway MySQL variables are missing.");
+}
+
 $conn = new mysqli(
     $host,
     $user,
