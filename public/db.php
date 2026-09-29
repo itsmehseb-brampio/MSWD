@@ -1,10 +1,18 @@
 <?php
-$host = getenv('DB_HOST') ?: 'localhost';
-$dbname = getenv('DB_DATABASE') ?: 'mapayanan_db';
-$user = getenv('DB_USERNAME') ?: 'root';
-$pass = getenv('DB_PASSWORD') ?: '';
 
-$conn = new mysqli($host, $user, $pass, $dbname);
+$host = getenv('MYSQLHOST');
+$port = getenv('MYSQLPORT') ?: 3306;
+$dbname = getenv('MYSQLDATABASE');
+$user = getenv('MYSQLUSER');
+$pass = getenv('MYSQLPASSWORD');
+
+$conn = new mysqli(
+    $host,
+    $user,
+    $pass,
+    $dbname,
+    (int) $port
+);
 
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
