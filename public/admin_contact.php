@@ -54,7 +54,7 @@ $muni_raw = $conn->query("SELECT * FROM municipal_contacts LIMIT 1")->fetch_asso
 
 $logo_url = '';
 if (!empty($details_raw['logo'])) {
-    $logo_url = (strpos($details_raw['logo'], 'uploads/') === 0) ? '/barangay/' . $details_raw['logo'] : $details_raw['logo'];
+    $logo_url = (strpos($details_raw['logo'], 'uploads/') === 0) ? '/' . $details_raw['logo'] : $details_raw['logo'];
 }
 $initials = '';
 foreach (preg_split('/\s+/', $selected_name) as $word) {
