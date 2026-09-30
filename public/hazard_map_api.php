@@ -31,13 +31,13 @@ if ($action === 'save') {
         exit;
     }
 
-    $stmt = $conn->prepare("UPDATE barangay_details SET map_lat=?, map_lng=?, map_zoom=?, hazard_polygons=?, hazard_points=?, hazard_map_updated_at=NOW() WHERE barangay_id=?");
-    $stmt->bind_param("ddissi", $lat, $lng, $zoom, $polygons, $points, $barangay_id);
+    $stmt = $conn->prepare("INSERT INTO barangay_details (barangay_id, map_lat, map_lng, map_zoom, hazard_polygons, hazard_points, hazard_map_updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW()) ON DUPLICATE KEY UPDATE map_lat=VALUES(map_lat), map_lng=VALUES(map_lng), map_zoom=VALUES(map_zoom), hazard_polygons=VALUES(hazard_polygons), hazard_points=VALUES(hazard_points), hazard_map_updated_at=NOW()");
+    $stmt->bind_param("iddiss", $barangay_id, $lat, $lng, $zoom, $polygons, $points);
     if ($stmt->execute()) {
         echo json_encode(['success' => true, 'updated_at' => date('Y-m-d H:i:s')]);
     } else {
         http_response_code(500);
-        echo json_encode(['success' => false, 'error' => $conn->error]);
+        echo json_encode(['success' => false, 'error' => $stmt->error]);
     }
     $stmt->close();
     exit;
