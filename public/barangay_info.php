@@ -168,9 +168,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach ($detail_fields as $f) {
             $data[$f] = trim($_POST['data'][$f] ?? '');
         }
-        // Numeric columns must be NULL when empty
-        foreach (['population', 'households', 'land_area'] as $nf) {
-            if ($data[$nf] === '' || !is_numeric($data[$nf])) $data[$nf] = null;
+        // These integer columns are NOT NULL and default to zero.
+        foreach (['population', 'households', 'head_of_household'] as $nf) {
+            $data[$nf] = is_numeric($data[$nf]) ? (int)$data[$nf] : 0;
         }
         // Date column must be NULL when empty; convert any accepted format to Y-m-d
         $data['date_established'] = normalizeDate($data['date_established']);
