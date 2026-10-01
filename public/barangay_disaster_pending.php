@@ -23,7 +23,7 @@ $reports = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
 $dchart_scope = 'barangay';
 $dchart_barangay_id = $barangay_id;
 $dchart_where = "barangay_id=$barangay_id AND status='pending'";
-include '../DSWD/disaster_charts_data.php';
+include __DIR__ . '/disaster_charts_data.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -178,7 +178,7 @@ tr td:first-child{font-weight:600;color:#333;}
             </div>
 
             <div class="content">
-                <?php include '../DSWD/disaster_charts_block.php'; ?>
+                <?php include __DIR__ . '/disaster_charts_block.php'; ?>
                 <div class="page-card">
                     <h2><i class="fas fa-clock"></i> Pending Reports <span style="margin-left:auto;font-size:0.8rem;color:#999;"><?php echo count($reports); ?> result(s)</span></h2>
                     <?php if (count($reports) > 0): ?>
