@@ -48,6 +48,9 @@ switch ($action) {
         $item_qty = $_POST['item_qty'] ?? [];
         $item_unit = $_POST['item_unit'] ?? [];
         if (!$title || !$date) { echo json_encode(['error' => 'Title and date required']); exit(); }
+        if (!$target_all && empty($target_ids)) {
+            echo json_encode(['error' => 'Select at least one barangay or choose All Barangays']); exit();
+        }
 
         $stmt = $conn->prepare("INSERT INTO relief_schedules (title, description, distribution_date, distribution_time, location) VALUES (?, ?, ?, ?, ?)");
         $stmt->bind_param("sssss", $title, $desc, $date, $time, $location);

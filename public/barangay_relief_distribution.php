@@ -161,7 +161,12 @@ function toggleDropdown(){document.getElementById("dropdownMenu").classList.togg
 window.onclick=function(e){if(!e.target.closest('.profile-area'))document.getElementById("dropdownMenu").classList.remove("show");}
 
 function loadSchedules(){
-    fetch('relief_distribution_api.php?action=list').then(r=>r.json()).then(data=>renderSchedules(data)).catch(()=>{});
+    fetch('relief_distribution_api.php?action=list').then(r=>r.json()).then(data=>{
+        if(!Array.isArray(data))throw new Error(data.error||'Unable to load relief schedules');
+        renderSchedules(data);
+    }).catch(error=>{
+        document.getElementById('scheduleList').innerHTML='<div class="empty">'+esc(error.message)+'</div>';
+    });
 }
 
 function nowLocal(){
@@ -200,7 +205,7 @@ function submitConfirm(){
         if(res.error){alert(res.error);return;}
         closeConfirm();
         loadSchedules();
-    }).catch(()=>{btn.disabled=false;alert('Submission failed.');});
+    }).catch(()=>{btn.disabled=false;alert('Submission failed. Please try again.');});
 }
 
 function renderSchedules(items){

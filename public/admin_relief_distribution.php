@@ -326,20 +326,31 @@ function addSchedule(){
         document.getElementById('schTitle').value='';document.getElementById('schDesc').value='';
         document.getElementById('schDate').value='';document.getElementById('schTime').value='';
         document.getElementById('schLocation').value='';
-        loadDefaultItems();toggleSchTarget();loadSchedules();});
+        loadDefaultItems();toggleSchTarget();loadSchedules();}).catch(()=>alert('Unable to create the relief schedule. Please try again.'));
 }
 function updateStatus(id,status){
     const fd=new FormData();fd.append('action','update_status');fd.append('id',id);fd.append('status',status);
-    fetch('relief_api.php',{method:'POST',body:fd}).then(r=>r.json()).then(()=>loadSchedules());
+    fetch('relief_api.php',{method:'POST',body:fd}).then(r=>r.json()).then(res=>{
+        if(res.error){alert(res.error);return;}
+        loadSchedules();
+    }).catch(()=>alert('Unable to update the relief schedule.'));
 }
 function deleteSchedule(id){
     if(!confirm('Delete this schedule?'))return;
     const fd=new FormData();fd.append('action','delete');fd.append('id',id);
-    fetch('relief_api.php',{method:'POST',body:fd}).then(r=>r.json()).then(()=>loadSchedules());
+    fetch('relief_api.php',{method:'POST',body:fd}).then(r=>r.json()).then(res=>{
+        if(res.error){alert(res.error);return;}
+        loadSchedules();
+    }).catch(()=>alert('Unable to delete the relief schedule.'));
 }
 
 function loadSchedules(){
-    fetch('relief_distribution_api.php?action=list').then(r=>r.json()).then(data=>{renderSchedules(data);renderCharts(data);}).catch(()=>{});
+    fetch('relief_distribution_api.php?action=list').then(r=>r.json()).then(data=>{
+        if(!Array.isArray(data))throw new Error(data.error||'Unable to load relief schedules');
+        renderSchedules(data);renderCharts(data);
+    }).catch(error=>{
+        document.getElementById('scheduleList').innerHTML='<div class="empty">'+esc(error.message)+'</div>';
+    });
 }
 
 let itemChart=null,statusChart=null,brgyChart=null;
@@ -413,7 +424,10 @@ function renderCharts(items){
 function deleteReport(id,barangayName){
     if(!confirm('Delete the confirmation report from '+barangayName+'?'))return;
     const fd=new FormData();fd.append('action','delete_report');fd.append('id',id);
-    fetch('relief_distribution_api.php',{method:'POST',body:fd}).then(r=>r.json()).then(()=>loadSchedules());
+    fetch('relief_distribution_api.php',{method:'POST',body:fd}).then(r=>r.json()).then(res=>{
+        if(res.error){alert(res.error);return;}
+        loadSchedules();
+    }).catch(()=>alert('Unable to delete the receipt report.'));
 }
 
 function renderSchedules(items){
@@ -440,7 +454,7 @@ function renderSchedules(items){
             const rd=new Date(r.received_at.replace(' ','T'));
             const rdt=rd.toLocaleString('en-US',{month:'long',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
             const docs=(r.documents||[]).map(doc=>{
-                const url='../barangay/'+doc.file_path;
+                const url=doc.file_path;
                 const ext=doc.file_path.split('.').pop().toLowerCase();
                 if(ext==='pdf')return '<a class="doc-pdf" href="'+url+'" target="_blank"><i class="fas fa-file-pdf" style="font-size:1.3rem;margin-right:3px;"></i>PDF</a>';
                 return '<a href="'+url+'" target="_blank"><img src="'+url+'" alt="Documentation"></a>';
