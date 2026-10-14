@@ -7,9 +7,39 @@ $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 switch ($action) {
     case 'list':
-        if (!isset($_SESSION['admin_id'])) { echo json_encode(['error' => 'Unauthorized']); exit(); }
-        $sql = "SELECT a.*, ad.username as admin_name FROM announcements a LEFT JOIN admins ad ON a.admin_id = ad.id ORDER BY a.is_pinned DESC, a.created_at DESC";
-        $result = $conn->query($sql);
+        if (isset($_SESSION['admin_id'])) {
+            $sql = "SELECT a.*, ad.username as admin_name FROM announcements a LEFT JOIN admins ad ON a.admin_id = ad.id ORDER BY a.is_pinned DESC, a.created_at DESC";
+            $result = $conn->query($sql);
+        } elseif (isset($_SESSION['barangay_id'])) {
+            $barangay_id = intval($_SESSION['barangay_id']);
+            $stmt = $conn->prepare(
+                "SELECT a.*, ad.username as admin_name
+                 FROM announcements a
+                 LEFT JOIN admins ad ON a.admin_id = ad.id
+                 WHERE NOT EXISTS (
+                     SELECT 1 FROM announcement_targets at2
+                     WHERE at2.announcement_id = a.announcement_id
+                 ) OR EXISTS (
+                     SELECT 1 FROM announcement_targets at2
+                     WHERE at2.announcement_id = a.announcement_id
+                       AND at2.barangay_id = ?
+                 )
+                 ORDER BY a.is_pinned DESC, a.created_at DESC"
+            );
+            $stmt->bind_param("i", $barangay_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+        } else {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized']);
+            exit();
+        }
+
+        if (!$result) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Unable to load announcements']);
+            exit();
+        }
         $list = [];
         while ($row = $result->fetch_assoc()) {
             $aid = intval($row['announcement_id']);

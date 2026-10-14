@@ -71,7 +71,7 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;}
     <?php include 'barangay_sidebar.php'; ?>
     <div class="main-content">
         <div class="header">
-            <h1><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
+            <h1><i class="fas fa-tachometer-alt"></i> Barangay Announcements</h1>
             <div style="position:relative;">
                 <div class="profile-area" onclick="toggleDropdown()">
                     <img src="<?php echo htmlspecialchars($header_logo ?? 'yana.png'); ?>" alt="Logo" onerror="this.src='yana.png'">
@@ -119,10 +119,15 @@ let allAnnouncements = [];
 
 function loadAnnouncements(){
     fetch('announcement_api.php?action=list').then(r=>r.json()).then(data=>{
+        if(!Array.isArray(data))throw new Error(data.error||'Unable to load announcements');
         allAnnouncements = data;
         renderFeatured(data);
         renderList(data);
-    }).catch(()=>{});
+    }).catch(error=>{
+        const message='Unable to load announcements: '+esc(error.message);
+        document.getElementById('featuredGrid').innerHTML='<div class="featured-empty">'+message+'</div>';
+        document.getElementById('announceList').innerHTML='<div class="empty">'+message+'</div>';
+    });
 }
 
 function renderFeatured(items){
