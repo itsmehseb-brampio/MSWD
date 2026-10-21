@@ -1,42 +1,29 @@
 /* ==========================================================
-   MSWD Government Design System - app.css
-   Official palette for Municipal Social Welfare Development,
-   Malilipot, Albay, Philippines
+   MSWD Government Design System - Minimal Palette
+   Municipal Social Welfare Development, Malilipot, Albay
    ========================================================== */
 
-/* --- CSS Custom Properties (Official Government Palette) --- */
+/* --- Essential CSS Custom Properties (Minimal Palette) --- */
 :root {
-    /* Primary government blue */
+    /* Primary government blue - used for primary actions */
     --color-primary: #1E40AF;
 
-    /* Secondary blue for supporting roles */
-    --color-secondary: #3B82F6;
-
-    /* Light blue background for clean, balanced appearance */
+    /* Light blue background - page background */
     --color-background: #EFF6FF;
 
-    /* White for content surfaces, cards, forms */
+    /* White - content surfaces, cards, forms */
     --color-card: #FFFFFF;
 
     /* Main text - deep charcoal for readability */
     --color-foreground: #1F2937;
 
-    /* Secondary text - muted but legible */
+    /* Secondary text - muted and legible */
     --color-muted-foreground: #64748B;
 
     /* Borders - subtle and accessible */
     --color-border: #E2E8F0;
 
-    /* Success action color */
-    --color-success: #15803D;
-
-    /* Warning indicator color */
-    --color-warning: #B45309;
-
-    /* Danger/error indicator color */
-    --color-danger: #B91C1C;
-
-    /* Ring color (focus states) */
+    /* Focus ring color */
     --color-ring: #1E40AF;
 
 /* --- Base HTML Elements --- */
@@ -55,21 +42,15 @@
 
 /* --- typography --- */
     --font-family-base: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-    --font-family-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
-    --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
-
     --font-size-xs: 0.75rem;
     --font-size-sm: 0.875rem;
     --font-size-base: 0.9375rem;
     --font-size-lg: 1.125rem;
     --font-size-xl: 1.25rem;
     --font-size-2xl: 1.5rem;
-    --font-size-3xl: 1.875rem;
 
-    --font-weight-light: 300;
     --font-weight-normal: 400;
     --font-weight-medium: 500;
-    --font-weight-semibold: 600;
     --font-weight-bold: 700;
 
 /* --- spacing and border-radius --- */
@@ -78,7 +59,6 @@
     --space-3: 0.75rem;
     --space-4: 1rem;
     --space-6: 1.5rem;
-    --space-8: 2rem;
 
     --radius-sm: 6px;
     --radius-md: 8px;
@@ -89,7 +69,6 @@
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --shadow-inset: inset 0 1px 0 0 rgba(0, 0, 0, 0.05);
 
 /* ==========================================================
    GENERIC ELEMENTS STYLING (will cascade to all pages)
@@ -116,7 +95,7 @@ a {
 }
 
 a:hover {
-    color: var(--color-secondary);
+    color: var(--color-primary);
 }
 
 /* --- Buttons --- */
@@ -138,35 +117,8 @@ a:hover {
 }
 
 .btn-secondary {
-    background-color: var(--color-secondary);
-    border-color: var(--color-secondary);
-}
-
-.btn-success {
-    background-color: var(--color-success);
-    border-color: var(--color-success);
-}
-
-.btn-warning {
-    background-color: var(--color-warning);
-    border-color: var(--color-warning);
-}
-
-.btn-danger {
-    background-color: var(--color-danger);
-    border-color: var(--color-danger);
-}
-
-.btn-outline {
-    background-color: transparent;
-    color: var(--color-primary);
-    border: 1px solid var(--color-primary);
-}
-
-.btn-link {
-    padding: var(--space-1) var(--space-2);
-    font-weight: var(--font-weight-normal);
-    color: var(--link-color);
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
 }
 
 .btn:hover {
@@ -203,31 +155,27 @@ a:hover {
     opacity: 0.8;
 }
 
-/--- Textareas ---
-.form-textarea {
-    min-height: 120px;
-    resize: vertical;
-}
-
-/--- Input Groups ---
+/* --- Input Groups ---
+   (kept simple - just the essentials) */
 .input-group {
     display: flex;
     align-items: stretch;
 }
 
 .input-group .form-control {
-    border-radius: var(--radius-md) var(0 0) var(--radius-md) 0;
+    border-radius: var(--radius-md) 0 0 var(--radius-md);
 }
 
 .input-group .form-control:first-child {
-    border-radius: var(--radius-md) var(0 0) 0 0;
+    border-radius: var(--radius-md) 0 0 0;
 }
 
 .input-group .form-control:last-child {
     border-radius: 0 var(--radius-md) var(--radius-md) 0;
 }
 
-/--- Input Group Addons ---
+/* --- Input Group Addons ---
+   Simple version */
 .input-group-text {
     display: flex;
     align-items: center;
@@ -237,7 +185,7 @@ a:hover {
     color: var(--body-color-muted);
     background-color: var(--color-card);
     border: 1px solid var(--color-border);
-    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    border-left: 0;
     white-space: nowrap;
 }
 
@@ -247,20 +195,6 @@ a:hover {
 
 .input-group .form-control:first-child {
     border-radius: var(--radius-md) 0 0 var(--radius-md);
-}
-
-/* --- Input Groups with Buttons ---
-   Used for button inputs inside groups */
-.input-group .btn {
-    border-radius: 0 var(--radius-md) var(--radius-md) 0;
-}
-
-.input-group .btn:first-child {
-    border-radius: var(--radius-md) 0 0 0;
-}
-
-.input-group .btn:last-child {
-    border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
 
 /* --- Focus Rings ---
@@ -273,19 +207,10 @@ a:hover {
 /* --- Utilities for color theming --- */
 .bg-primary { background-color: var(--color-primary) !important; }
 .text-primary { color: var(--color-primary) !important; }
-.bg-secondary { background-color: var(--color-secondary) !important; }
-.text-secondary { color: var(--color-secondary) !important; }
 .bg-background { background-color: var(--color-background) !important; }
 .text-foreground { color: var(--color-foreground) !important; }
 .bg-card { background-color: var(--color-card) !important; }
-.text-foreground { color: var(--color-foreground) !important; }
 .border-border { border-color: var(--color-border) !important; }
-.bg-success { background-color: var(--color-success) !important; }
-.text-success { color: var(--color-success) !important; }
-.bg-warning { background-color: var(--color-warning) !important; }
-.text-warning { color: var(--color-warning) !important; }
-.bg-danger { background-color: var(--color-danger) !important; }
-.text-danger { color: var(--color-danger) !important; }
 
 /* ==========================================================
    TABLE STYLING (will apply to all tables system-wide)
@@ -330,10 +255,6 @@ a:hover {
     font-weight: var(--font-weight-medium);
 }
 
-.table .font-weight-normal {
-    font-weight: var(--font-weight-normal);
-}
-
 /* ==========================================================
    CARD STYLING (will apply to all cards system-wide)
    ========================================================== */
@@ -347,19 +268,14 @@ a:hover {
 }
 
 .card-header {
-    padding: var(--space-4) var(--space-4);
+    padding: var(--space-3) var(--space-4);
     background-color: var(--color-background);
     border-bottom: 1px solid var(--color-border);
     color: var(--color-foreground);
 }
 
-.card-header .btn-link {
-    padding: 0;
-    color: var(--color-primary);
-}
-
 .card-body {
-    padding: var(--space-4);
+    padding: var(--space-3);
 }
 
 .card-title {
@@ -369,15 +285,8 @@ a:hover {
     color: var(--color-foreground);
 }
 
-.card-subtitle {
-    font-size: var(--font-size-sm);
-    color: var(--body-color-muted);
-    margin-top: var(--space-1);
-    margin-bottom: var(--space-2);
-}
-
 .card-footer {
-    padding: var(--space-3) var(--space-4);
+    padding: var(--space-2) var(--space-4);
     background-color: var(--color-background);
     border-top: 1px solid var(--color-border);
     color: var(--body-color-muted);
@@ -394,23 +303,13 @@ a:hover {
     border-radius: var(--radius-md);
 }
 
-.alert-success {
-    color: var(--color-success);
-    background-color: rgba(21, 128, 61, 0.1);
-    border-color: rgba(21, 128, 61, 0.2);
+/* Reduced-color alerts - just background tint, no colored text/borders */
+.alert-information {
+    background-color: rgba(30, 64, 175, 0.05);
+    border: 1px solid rgba(30, 64, 175, 0.1);
 }
 
-.alert-warning {
-    color: var(--color-warning);
-    background-color: rgba(180, 83, 9, 0.1);
-    border-color: rgba(180, 83, 9, 0.2);
-}
-
-.alert-danger {
-    color: var(--color-danger);
-    background-color: rgba(185, 28, 28, 0.1);
-    border-color: rgba(185, 28, 28, 0.2);
-}
+/* No separate success/warning/danger - use descriptive text instead */
 
 /* ==========================================================
    BADGE STYLING (will apply to all badges system-wide)
@@ -429,27 +328,14 @@ a:hover {
 }
 
 .badge-secondary {
-    background-color: var(--color-secondary);
+    background-color: var(--color-primary);
     color: var(--color-card);
 }
 
-.badge-success {
-    background-color: var(--color-success);
-    color: var(--color-card);
-}
-
-.badge-warning {
-    background-color: var(--color-warning);
-    color: var(--color-card);
-}
-
-.badge-danger {
-    background-color: var(--color-danger);
-    color: var(--color-card);
-}
+/* No separate success/warning/danger badges */
 
 /* ==========================================================
-   BUTTON GROUPS
+   BUTTON GROUPS (simple)
    ========================================================== */
 
 .btn-group > .btn,
@@ -463,13 +349,8 @@ a:hover {
     z-index: 1;
 }
 
-.btn-group > .btn-active,
-.btn-vertical > .btn-active {
-    z-index: 1;
-}
-
 /* ==========================================================
-   NAVIGATION & TABS
+   NAVIGATION & TABS (simple)
    ========================================================== */
 
 .nav {
@@ -521,17 +402,8 @@ a:hover {
     border-top-color: var(--color-primary);
 }
 
-.nav-pills .nav-link {
-    border-radius: var(--radius-md);
-}
-
-.nav-pills .nav-link.active {
-    color: var(--color-card);
-    background-color: var(--color-primary);
-}
-
 /* ==========================================================
-   BREADCRUMB STYLING
+   BREADCRUMB STYLING (simple)
    ========================================================== */
 
 .breadcrumb {
@@ -585,8 +457,5 @@ a:hover {
 }
 
 /* ==========================================================
-   PAGE-SPECIFIC OVERRIDES (add more as needed per page)
-   NOTE: These are base rules that apply globally.
-   Page-specific rules should be added in the respective Blade files'
-   @stack('head') or through existing stylesheet includes.
+   PAGE-SPECIFIC OVERRIDES
    ========================================================== */
