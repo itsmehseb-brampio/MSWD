@@ -1,0 +1,448 @@
+/* ==========================================
+   MSWD - Responsive CSS
+   Made for Data Management System
+   ========================================== */
+
+/* HTML & Body fundamentals */
+html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Make media elements responsive */
+img, video, iframe, canvas, embed, object {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Ensure grid children can shrink below their content size */
+.main-content, .main, .content, .page-body, .header, .card, .panel, .schedule-card, .stat-card, .chart-card, .info-card, .reminder-panel, .risk-panel, .report-card, .hazard-card, .contact-card {
+    min-width: 0;
+}
+
+/* ==========================================
+   Sidebar Responsive
+   ========================================== */
+
+/* Admin sidebar - hides/shows on mobile */
+@media (max-width: 900px) {
+    .sidebar {
+        width: min(300px, 88vw);
+        transform: translateX(-100%);
+        z-index: 1100;
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    .sidebar.hide {
+        transform: translateX(-100%);
+    }
+
+    .sidebar-edge {
+        display: flex !important;
+        z-index: 1101;
+    }
+
+    .main-content, .main, .sidebar.hide ~ .main-content {
+        width: 100%;
+        margin-left: 0 !important;
+    }
+
+    /* Ensure wrapper adjusts */
+    .wrapper {
+        margin-left: 0 !important;
+    }
+}
+
+/* Barangay sidebar - hides/shows on mobile */
+@media (max-width: 900px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    .main {
+        margin-left: 0 !important;
+    }
+}
+
+/* Sidebar edge button (hamburger) - always visible on small screens */
+@media (max-width: 900px) {
+    .sidebar-edge {
+        display: flex !important;
+    }
+}
+
+/* ==========================================
+   Header Responsive
+   ========================================== */
+
+/* Admin header */
+@media (max-width: 900px) {
+    .header {
+        min-height: 64px;
+        padding: 12px 18px !important;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .header h1 {
+        font-size: 1.15rem;
+    }
+
+    .header-brand {
+        min-width: 0;
+    }
+
+    .header-brand .hb-txt b {
+        font-size: 1rem;
+    }
+
+    .admin-profile {
+        display: none; /* Hide on mobile, use sidebar user info instead */
+    }
+}
+
+/* Barangay header */
+@media (max-width: 900px) {
+    .header {
+        padding: 10px 14px !important;
+    }
+
+    .header h1 {
+        font-size: 1rem;
+    }
+
+    .header-brand img {
+        width: 38px;
+        height: 38px;
+    }
+
+    .admin-profile {
+        padding: 5px 9px;
+        gap: 7px;
+    }
+
+    .admin-profile > span {
+        max-width: 110px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+/* Header at 560px and below */
+@media (max-width: 560px) {
+    .header {
+        padding: 10px 14px !important;
+    }
+
+    .header h1 {
+        font-size: 1rem;
+    }
+
+    .header-brand img {
+        width: 38px;
+        height: 38px;
+    }
+
+    .admin-profile {
+        padding: 5px 9px;
+        gap: 7px;
+    }
+
+    .admin-profile > span {
+        max-width: 110px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+/* ==========================================
+   Card & Panel Headers Responsive
+   ========================================== */
+
+/* Card headers wrap on mobile */
+@media (max-width: 900px) {
+    .card-header, .panel-header, .card .card-header, .panel .panel-header {
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .card-header > *, .panel-header > * {
+        min-width: 0;
+    }
+}
+
+/* ==========================================
+   Grid Layouts Responsive
+   ========================================== */
+
+/* Main content grid - stats cards */
+@media (max-width: 900px) {
+    .form-row, .form-grid, .pf-row, .pf-row.three, .pf-upload-grid,
+    .two-panel, .two-col, .view-grid, .sections, .info-layout, .hm-row,
+    .chart-row, .charts-row, .risk-row, .reminder-row, .report-grid, .stats,
+    .stats-grid, .stat-row {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+}
+
+/* Summary row - 2 columns on desktop, 1 on mobile */
+@media (max-width: 900px) {
+    .summary-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+/* At 560px - summary row becomes 1 column */
+@media (max-width: 560px) {
+    .summary-row {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+}
+
+/* Dashboard stat-row with auto-fit */
+.stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+/* Admin risk-row */
+@media (max-width: 900px) {
+    .risk-row, .reminder-row {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Item row - dashboard entries */
+@media (max-width: 900px) {
+    .item-row {
+        grid-template-columns: minmax(0, 1fr) minmax(70px, 0.5fr) minmax(80px, 0.65fr) 32px;
+    }
+}
+
+@media (max-width: 560px) {
+    .item-row {
+        grid-template-columns: minmax(0, 1fr) minmax(64px, 0.55fr) 32px;
+    }
+
+    .item-row .item-unit {
+        grid-column: 1 / 3;
+        grid-row: 2;
+    }
+
+    .item-row .btn-remove-item {
+        grid-column: 3;
+        grid-row: 1 / 3;
+    }
+}
+
+/* Forms grid */
+@media (max-width: 900px) {
+    .form-grid, .pf-row, .pf-upload-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* .two-panel becomes single column */
+@media (max-width: 900px) {
+    .two-panel, .two-col {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* .view-grid becomes single column */
+@media (max-width: 900px) {
+    .view-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Info layout */
+@media (max-width: 900px) {
+    .info-layout {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Chart cards - single column on mobile */
+@media (max-width: 900px) {
+    .chart-row, .charts-row {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ==========================================
+   Modal & Popup Responsive
+   ========================================== */
+
+/* Modal content boxes */
+@media (max-width: 900px) {
+    .modal-content, .modal-box, .popup-content {
+        width: min(100% - 24px, 720px);
+        max-width: 100%;
+        max-height: calc(100vh - 24px);
+        overflow: auto;
+        padding: 16px;
+    }
+}
+
+/* ==========================================
+   Table Responsive
+   ========================================== */
+
+/* Make tables scrollable on mobile */
+@media (max-width: 900px) {
+    table {
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    th, td {
+        overflow-wrap: anywhere;
+    }
+}
+
+/* Force table columns to be visible - each th/td takes full width on small screens */
+@media (max-width: 560px) {
+    table thead {
+        display: none;
+    }
+
+    table tr {
+        display: block;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    table td {
+        display: block;
+        border-bottom: 1px solid #ddd;
+        padding: 0.5rem 0;
+        font-size: 0.85rem;
+    }
+
+    table td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        display: block;
+        margin-bottom: 0.25rem;
+        color: #555;
+    }
+}
+
+/* ==========================================
+   Chart Responsive
+   ========================================== */
+
+/* All Chart.js charts already have responsive: true in their options */
+@media (max-width: 900px) {
+    .chart-wrap {
+        height: 200px;
+        padding: 8px;
+    }
+
+    .chart-wrap canvas {
+        height: 200px !important;
+    }
+}
+
+/* ==========================================
+   Toast & Alert Responsive
+   ========================================== */
+
+@media (max-width: 900px) {
+    .toast {
+        left: 12px;
+        right: 12px;
+        top: 76px;
+        max-width: none;
+        margin: 0;
+    }
+}
+
+/* ==========================================
+   Specific Component Improvements
+   ========================================== */
+
+/* Search boxes */
+.search-box {
+    width: 100%;
+    max-width: 500px;
+    padding: 12px 18px 12px 45px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    background: white;
+}
+
+.search-box:focus {
+    outline: none;
+    border-color: #0072C6;
+    box-shadow: 0 0 0 3px rgba(0, 114, 198, 0.1);
+}
+
+/* Reduce search box on mobile */
+@media (max-width: 560px) {
+    .search-box {
+        max-width: 100%;
+        font-size: 0.9rem;
+        padding: 10px 14px 10px 40px;
+    }
+}
+
+/* Breadcrumbs and page titles */
+.breadcrumb {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.breadcrumb-item a, .breadcrumb-item span {
+    font-size: 0.85rem;
+}
+
+/* Badges */
+.badge {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+}
+
+/* Tables specific */
+.data-table th, .data-table td {
+    padding: 10px 8px;
+    font-size: 0.85rem;
+}
+
+/* Links and buttons */
+a, button {
+    font-size: inherit;
+}
+
+/* Reduce padding on small screens */
+@media (max-width: 768px) {
+    .padding-responsive {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+}
+
+/* Margin adjustments */
+@media (max-width: 900px) {
+    .margin-responsive {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+}

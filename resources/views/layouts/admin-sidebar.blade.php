@@ -94,8 +94,17 @@ function canAdmin($perm) {
 <button class="sidebar-edge" onclick="openSidebar()" title="Show menu"><i class="fas fa-bars"></i></button>
 
 <script>
-function openSidebar() { document.getElementById("sidebar").classList.remove("hide"); }
-function closeSidebar() { document.getElementById("sidebar").classList.add("hide"); }
+function openSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    sidebar.classList.remove("hide");
+    sidebar.classList.add("open");
+}
+function closeSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    sidebar.classList.add("hide");
+    sidebar.classList.remove("open");
+}
+if (window.matchMedia("(max-width: 900px)").matches) closeSidebar();
 function toggleMenu(element) {
     const isActive = element.parentElement.classList.contains('active');
     document.querySelectorAll('.has-submenu').forEach(item => item.classList.remove('active'));

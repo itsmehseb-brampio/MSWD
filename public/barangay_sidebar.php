@@ -1,4 +1,5 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="responsive.css">
 <?php $current_page = basename($_SERVER['PHP_SELF']); ?>
 
 <div class="sidebar" id="sidebar">
@@ -356,8 +357,7 @@
 
 @media (max-width: 768px) {
     .sidebar {
-        width: 100%;
-        max-width: 300px;
+        width: min(300px, 88vw);
     }
     .sidebar.hide {
         transform: translateX(-100%);
@@ -371,11 +371,13 @@
 <script>
 function openSidebar() {
     document.getElementById("sidebar").classList.remove("hide");
+    document.getElementById("sidebar").classList.add("open");
 }
-
 function closeSidebar() {
     document.getElementById("sidebar").classList.add("hide");
+    document.getElementById("sidebar").classList.remove("open");
 }
+if (window.matchMedia("(max-width: 900px)").matches) closeSidebar();
 
 // Toggle submenu open/close (only one open)
 function toggleMenu(element) {
