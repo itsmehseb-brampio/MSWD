@@ -6,27 +6,34 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
+/* CSS Variables from app.css are assumed to be loaded */
+
+/* Reset and Base */
 * { margin: 0; padding: 0; box-sizing: border-box; }
+
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     min-height: 100vh;
     display: flex;
-    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    background: var(--color-background);
+    color: var(--color-foreground);
 }
+
 .login-container {
     display: flex;
     width: 100%;
     max-width: 1200px;
     margin: auto;
-    background: white;
-    border-radius: 20px;
+    background: var(--color-card);
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
 }
+
 .login-left {
     flex: 1;
-    background: linear-gradient(135deg, #11998e 0%, #0b6e4f 100%);
-    padding: 60px 40px;
+    background: var(--color-primary);
+    padding: 40px 30px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -34,39 +41,78 @@ body {
     text-align: center;
     color: white;
 }
-.login-left img { width: 120px; margin-bottom: 30px; border-radius: 50%; border: 4px solid rgba(255,255,255,0.3); }
-.login-left h1 { font-size: 2rem; margin-bottom: 10px; }
-.login-left p { font-size: 1.1rem; opacity: 0.9; }
-.login-right { flex: 1; padding: 60px 50px; display: flex; flex-direction: column; justify-content: center; }
-.login-right h2 { font-size: 1.8rem; color: #333; margin-bottom: 10px; }
-.login-right p { color: #666; margin-bottom: 30px; }
-.form-group { margin-bottom: 20px; }
-.form-group label { display: block; margin-bottom: 8px; color: #333; font-weight: 600; }
+
+.login-left img { width: 100px; margin-bottom: 25px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.3); }
+
+.login-left h1 { font-size: 1.8rem; margin-bottom: 8px; }
+
+.login-left p { font-size: 1rem; opacity: 0.9; margin-bottom: 25px; }
+
+.login-left .subtitle { font-size: 0.85rem; opacity: 0.8; margin-bottom: 30px; }
+
+.login-right { flex: 1; padding: 40px 35px; display: flex; flex-direction: column; justify-content: center; }
+
+.login-right h2 { font-size: 1.6rem; color: var(--color-foreground); margin-bottom: 8px; }
+
+.login-right p { color: var(--color-muted-foreground); margin-bottom: 25px; }
+
+/* Form Styles */
+.form-group { margin-bottom: 20px; position: relative; }
+
+.form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--color-foreground); }
+
 .form-group input {
-    width: 100%; padding: 14px 16px; border: 2px solid #e0e0e0; border-radius: 10px;
+    width: 100%; padding: 14px 16px; border: 2px solid var(--color-border); border-radius: 10px;
     font-size: 1rem; transition: border-color 0.3s, box-shadow 0.3s;
+    background: var(--color-card);
+    color: var(--color-foreground);
 }
-.form-group input:focus { outline: none; border-color: #11998e; box-shadow: 0 0 0 3px rgba(17,153,142,0.1); }
-.login-btn {
-    width: 100%; padding: 16px; background: linear-gradient(90deg, #11998e, #0b6e4f);
-    color: white; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: 600;
-    cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(30,64,175,0.15);
 }
-.login-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(17,153,142,0.4); }
-.error-message {
-    background: #f8d7da; color: #721c24; padding: 12px 16px; border-radius: 8px;
-    margin-bottom: 20px; border-left: 4px solid #dc3545;
-}
+
+.form-group input:focus::placeholder { color: var(--color-muted-foreground); }
+
+/* Barangay-specific: Suggestions box */
 .suggestions-box {
-    position: absolute; top:100%; left:0; right:0; background:white; border:1px solid #e0e0e0;
+    position: absolute; top:100%; left:0; right:0; background: var(--color-card); border:1px solid var(--color-border);
     border-radius:8px; max-height:200px; overflow-y:auto; z-index: 20; display:none; box-shadow:0 8px 20px rgba(0,0,0,0.12);
 }
-.suggestion-item { padding:10px 14px; cursor:pointer; font-size:0.9rem; color:#333; border-bottom:1px solid #f5f5f5; }
-.suggestion-item:hover { background:#eafaf6; }
-.suggestion-item.no-match { color:#999; cursor:default; }
+
+.suggestion-item { padding:10px 14px; cursor:pointer; font-size:0.9rem; color: var(--color-foreground); border-bottom:1px solid var(--color-border); }
+
+.suggestion-item:hover { background: var(--color-muted); }
+
+.suggestion-item.no-match { color: var(--color-muted-foreground); cursor:default; }
+
+.login-btn {
+    width: 100%; padding: 16px; background: var(--color-primary); color: white; border: none; border-radius: 10px; font-size: 1.1rem; font-weight: 600;
+    cursor: pointer; transition: box-shadow 0.2s, transform 0.1s;
+}
+
+.login-btn:hover { box-shadow: 0 6px 20px rgba(30,64,175,0.4); transform: translateY(-1px); }
+
+.login-btn:active { transform: translateY(1px); }
+
+/* Barangay-specific: Username input with suggestions */
+.barangay-input-wrapper { position: relative; }
+
+/* Error Message */
+.error-message {
+    background: var(--color-muted);
+    color: var(--color-destructive);
+    padding: 12px 16px; border-radius: 8px;
+    margin-bottom: 20px; border-left: 4px solid var(--color-destructive);
+}
+
+.error-message i { margin-right: 8px; }
+
 @media (max-width: 900px) {
     .login-container { flex-direction: column; margin: 20px; max-width: none; }
-    .login-left, .login-right { padding: 40px 30px; }
+    .login-left, .login-right { padding: 35px 25px; }
 }
 </style>
 </head>
@@ -76,8 +122,8 @@ body {
         <img src="{{ asset('mapa.png') }}" alt="Logo">
         <h1>Barangay Portal</h1>
         <p>Municipality of Malilipot</p>
-        <p style="margin-top:20px; font-size:0.9rem;">Municipal Social Welfare Development</p>
-        <p style="margin-top:8px; font-size:0.85rem; opacity:0.8;">Partnered with MDRRMO</p>
+        <p class="subtitle">Municipal Social Welfare Development</p>
+        <p class="subtitle" style="margin-top:8px; opacity:0.8;">Partnered with MDRRMO</p>
     </div>
 
     <div class="login-right">
@@ -92,15 +138,18 @@ body {
 
         <form method="POST" action="{{ route('barangay.login.post') }}">
             @csrf
-            <div class="form-group" style="position:relative;">
+            
+            <div class="form-group barangay-input-wrapper">
                 <label><i class="fas fa-building"></i> Barangay Account Name</label>
                 <input type="text" name="username" id="usernameInput" placeholder="Start typing barangay name..." value="{{ old('username') }}" required autocomplete="off" oninput="showSuggestions()" onfocus="showSuggestions()">
                 <div id="suggestions" class="suggestions-box"></div>
             </div>
+            
             <div class="form-group">
                 <label><i class="fas fa-lock"></i> Password</label>
                 <input type="password" name="password" placeholder="Enter your password" required>
             </div>
+
             <button type="submit" class="login-btn"><i class="fas fa-sign-in-alt"></i> Sign In</button>
         </form>
     </div>
