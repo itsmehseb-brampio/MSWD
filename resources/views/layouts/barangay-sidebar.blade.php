@@ -1,4 +1,4 @@
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
     <div class="side-logo">
         <img src="{{ asset('mapa.png') }}" alt="Portal logo">
         <div>
@@ -85,7 +85,7 @@
                 @endif
                 @if ($canBrgy('view_barangay_info') || $canBrgy('edit_barangay_info'))
                 <a class="s-item {{ $current === 'barangay.info' ? 'active' : '' }}" href="{{ route('barangay.info') }}">
-                    <i class="fas fa-info-circle"></i> Info &amp; Contacts
+                    <i class="fas fa-info-circle"></i> Info & Contacts
                 </a>
                 @endif
             </div>

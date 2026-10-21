@@ -1,107 +1,145 @@
 @extends('layouts.admin')
+
 @section('title', 'Admin Dashboard - Data Management System')
 
 @push('head')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
+/* CSS variables loaded from app.css */
+:root {
+    --color-primary: #1E40AF;
+    --color-secondary: #3B82F6;
+    --color-accent: #16A34A;
+    --color-background: #EFF6FF;
+    --color-foreground: #1E3A8A;
+    --color-card: #FFFFFF;
+    --color-muted: #E9EFF5;
+    --color-muted-foreground: #475569;
+    --color-border: #BFDBFE;
+    --color-destructive: #DC2626;
+    --color-ring: #1E40AF;
+}
+
+/* Stat Row */
 .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:22px;}
-.stat-card{background:white;border-radius:16px;padding:20px;display:flex;align-items:center;gap:16px;box-shadow:0 4px 14px rgba(0,0,0,0.07);position:relative;overflow:hidden;transition:transform 0.2s, box-shadow 0.2s;}
-.stat-card:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(0,0,0,0.12);}
-.stat-card::after{content:'';position:absolute;right:-22px;top:-22px;width:84px;height:84px;border-radius:50%;opacity:.14;background:currentColor;}
-.stat-card>i{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.25rem;color:#fff;flex-shrink:0;box-shadow:0 4px 12px rgba(0,0,0,0.18);}
-.stat-card.sc-b{color:#0072C6;}.stat-card.sc-b>i{background:linear-gradient(135deg,#0a6cff,#00a3ff);}
-.stat-card.sc-r{color:#dc3545;}.stat-card.sc-r>i{background:linear-gradient(135deg,#e53935,#ff7043);}
-.stat-card.sc-o{color:#f57c00;}.stat-card.sc-o>i{background:linear-gradient(135deg,#f57c00,#ffb300);}
-.stat-card.sc-g{color:#28a745;}.stat-card.sc-g>i{background:linear-gradient(135deg,#2e7d32,#66bb6a);}
-.stat-card b{font-size:1.65rem;color:#222;display:block;line-height:1.1;}
-.stat-card span{font-size:0.78rem;color:#8892a3;font-weight:600;}
+
+/* Stat Cards */
+.stat-card{
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: box-shadow 0.2s;
+}
+.stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+
+.stat-card .icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FFFFFF;
+}
+.stat-card.primary .icon { background: var(--color-primary); }
+.stat-card.secondary .icon { background: var(--color-secondary); }
+.stat-card.success .icon { background: var(--color-accent); }
+.stat-card.warning .icon { background: #D97706; }
+.stat-card.danger .icon { background: var(--color-destructive); }
+
+.stat-card b{font-size:1.65rem;color:var(--color-foreground);display:block;line-height:1.1;}
+.stat-card span{font-size:0.78rem;color:var(--color-muted-foreground);font-weight:600;}
+
 .risk-row{display:grid;grid-template-columns:1fr 1.25fr;gap:16px;margin-bottom:22px;}
-.risk-panel{background:white;border-radius:16px;box-shadow:0 4px 14px rgba(0,0,0,0.07);overflow:hidden;}
-.risk-head{display:flex;align-items:center;gap:9px;padding:15px 20px;border-bottom:2px solid #f0f0f0;font-weight:700;font-size:0.92rem;color:#333;}
+.risk-panel{background: var(--color-card);border-radius:16px;box-shadow:0 4px 14px rgba(0,0,0,0.07);overflow:hidden;}
+.risk-head{display:flex;align-items:center;gap:9px;padding:15px 20px;border-bottom:2px solid var(--color-muted);font-weight:700;font-size:0.92rem;color:var(--color-foreground);}
 .risk-chart-wrap{position:relative;height:250px;padding:16px 14px 8px;}
 .risk-donut-center{position:absolute;top:46%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;}
-.risk-donut-center b{display:block;font-size:1.9rem;line-height:1;color:#222;}
-.risk-donut-center span{font-size:0.68rem;color:#8892a3;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.risk-donut-center b{display:block;font-size:1.9rem;line-height:1;color:var(--color-foreground);}
+.risk-donut-center span{font-size:0.68rem;color:var(--color-muted-foreground);font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
 .risk-list{padding:16px 20px 18px;}
 .risk-line{display:flex;align-items:center;gap:11px;margin-bottom:12px;}
 .r-ico{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.8rem;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.18);}
 .r-ico.r-low{background:linear-gradient(135deg,#43e97b,#28a745);}
 .r-ico.r-medium{background:linear-gradient(135deg,#ffb74d,#fd7e14);}
-.r-ico.r-high{background:linear-gradient(135deg,#ff7a7a,#dc3545);}
+.r-ico.r-high{background:linear-gradient(135deg,#ff7a7a,var(--color-destructive));}
 .r-ico.r-critical{background:linear-gradient(135deg,#b34444,#7b1a1a);}
 .risk-line .rname{min-width:58px;font-size:0.76rem;font-weight:700;text-align:right;}
-.risk-line .rname.r-low{color:#28a745;}
+.risk-line .rname.r-low{color:var(--color-primary);}
 .risk-line .rname.r-medium{color:#fd7e14;}
-.risk-line .rname.r-high{color:#dc3545;}
-.risk-line .rname.r-critical{color:#7b1a1a;}
-.risk-bar{flex:1;height:12px;background:#eef1f4;border-radius:8px;overflow:hidden;}
+.risk-line .rname.r-high{color:var(--color-destructive);}
+.risk-line .rname.r-critical{color:var(--color-primary);}
+.risk-bar{flex:1;height:12px;background:var(--color-muted);border-radius:8px;overflow:hidden;}
 .risk-bar-fill{height:100%;border-radius:8px;transition:width 0.7s ease;display:flex;align-items:center;justify-content:flex-end;color:#fff;font-size:0.62rem;font-weight:700;padding-right:6px;}
 .risk-bar-fill.r-low{background:linear-gradient(90deg,#43e97b,#28a745);}
 .risk-bar-fill.r-medium{background:linear-gradient(90deg,#ffb74d,#fd7e14);}
-.risk-bar-fill.r-high{background:linear-gradient(90deg,#ff7a7a,#dc3545);}
+.risk-bar-fill.r-high{background:linear-gradient(90deg,#ff7a7a,var(--color-destructive));}
 .risk-bar-fill.r-critical{background:linear-gradient(90deg,#b34444,#7b1a1a);}
-.risk-count{font-weight:700;font-size:0.92rem;color:#222;min-width:22px;text-align:right;}
-.risk-names{font-size:0.78rem;color:#5a6673;margin:3px 0 12px;padding-left:4px;line-height:1.55;}
+.risk-count{font-weight:700;font-size:0.92rem;color:var(--color-foreground);min-width:22px;text-align:right;}
+.risk-names{font-size:0.78rem;color:var(--color-muted-foreground);margin:3px 0 12px;padding-left:4px;line-height:1.55;}
 .risk-names-lbl{font-weight:700;margin-right:4px;}
-.risk-names-lbl.r-critical-txt{color:#7b1a1a;}
-.risk-names-lbl.r-high-txt{color:#dc3545;}
+.risk-names-lbl.r-critical-txt{color:var(--color-primary);}
+.risk-names-lbl.r-high-txt{color:var(--color-destructive);}
 .risk-names-lbl.r-medium-txt{color:#fd7e14;}
-.risk-names-lbl.r-low-txt{color:#28a745;}
-.risk-legend-total{display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding:10px 14px;background:#f8fafc;border-radius:10px;font-size:0.78rem;color:#5a6673;font-weight:600;}
+.risk-names-lbl.r-low-txt{color:var(--color-primary);}
+.risk-legend-total{display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding:10px 14px;background:var(--color-muted);border-radius:10px;font-size:0.78rem;color:var(--color-muted-foreground);font-weight:600;}
 .reminder-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px;}
-.reminder-panel{background:white;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06);overflow:hidden;}
-.reminder-header{padding:12px 18px;font-weight:700;font-size:0.88rem;display:flex;align-items:center;gap:8px;border-bottom:2px solid #f0f0f0;}
+.reminder-panel{background: var(--color-card);border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06);overflow:hidden;}
+.reminder-header{padding:12px 18px;font-weight:700;font-size:0.88rem;display:flex;align-items:center;gap:8px;border-bottom:2px solid var(--color-muted);}
 .reminder-body{padding:12px 18px;max-height:180px;overflow-y:auto;}
-.reminder-item{padding:8px 0;border-bottom:1px solid #f5f5f5;display:flex;align-items:flex-start;gap:10px;}
+.reminder-item{padding:8px 0;border-bottom:1px solid var(--color-muted);display:flex;align-items:flex-start;gap:10px;}
 .reminder-item:last-child{border-bottom:none;}
 .reminder-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:6px;}
-.reminder-dot.red{background:#dc3545;}
+.reminder-dot.red{background:var(--color-destructive);}
 .reminder-dot.orange{background:#fd7e14;}
-.reminder-dot.blue{background:#0072C6;}
-.reminder-dot.green{background:#00D09C;}
-.reminder-title{font-weight:600;font-size:0.82rem;color:#333;}
-.reminder-sub{font-size:0.73rem;color:#999;margin-top:2px;}
-.reminder-empty{padding:15px;text-align:center;color:#bbb;font-size:0.8rem;}
+.reminder-dot.blue{background:var(--color-primary);}
+.reminder-dot.green{background:var(--color-accent);}
+.reminder-title{font-weight:600;font-size:0.82rem;color:var(--color-foreground);}
+.reminder-sub{font-size:0.73rem;color:var(--color-muted-foreground);margin-top:2px;}
+.reminder-empty{padding:15px;text-align:center;color:var(--color-muted-foreground);font-size:0.8rem;}
 .chart-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px;}
-.chart-card{background:white;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06);overflow:hidden;}
-.chart-card .card-header{padding:12px 18px;border-bottom:2px solid #f0f0f0;font-weight:700;font-size:0.88rem;display:flex;align-items:center;gap:8px;}
+.chart-card{background: var(--color-card);border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06);overflow:hidden;}
+.chart-card .card-header{padding:12px 18px;border-bottom:2px solid var(--color-muted);font-weight:700;font-size:0.88rem;display:flex;align-items:center;gap:8px;}
 .chart-wrap{position:relative;height:240px;padding:12px 14px 6px;}
-.chart-empty{display:none;text-align:center;color:#a5afbd;padding:45px 10px;font-size:0.8rem;font-weight:600;}
-.chart-empty i{display:block;font-size:2.2rem;color:#ccd5e0;margin-bottom:12px;}
-.search-box{width:100%;max-width:500px;padding:12px 18px 12px 45px;border:2px solid #e0e0e0;border-radius:12px;font-size:1rem;transition:border-color 0.3s,box-shadow 0.3s;background:white;}
-.search-box:focus{outline:none;border-color:#0072C6;box-shadow:0 0 0 3px rgba(0,114,198,0.1);}
+.chart-empty{display:none;text-align:center;color:var(--color-muted-foreground);padding:45px 10px;font-size:0.8rem;font-weight:600;}
+.chart-empty i{display:block;font-size:2.2rem;color:var(--color-muted);margin-bottom:12px;}
+.search-box{width:100%;max-width:500px;padding:12px 18px 12px 45px;border:2px solid var(--color-muted);border-radius:12px;font-size:1rem;transition:border-color 0.3s,box-shadow 0.3s;background:var(--color-card);}
+.search-box:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 3px rgba(30,64,175,0.1);}
 .search-wrapper{position:relative;margin-bottom:20px;}
-.search-wrapper i{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:#999;font-size:1rem;}
+.search-wrapper i{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--color-muted-foreground);font-size:1rem;}
 tr.data-row{cursor:pointer;transition:background 0.2s;}
-tr.data-row:hover{background:#f0f7ff;}
-.tabs-bar{display:flex;background:#e8ecf0;padding:0;min-height:40px;align-items:flex-end;overflow-x:auto;border-bottom:2px solid #ddd;margin:-25px -30px 22px;}
-.tab{display:flex;align-items:center;gap:8px;padding:10px 18px;background:#dde2e8;border-radius:8px 8px 0 0;cursor:pointer;font-size:0.85rem;font-weight:500;color:#555;white-space:nowrap;margin-right:2px;transition:background 0.2s;position:relative;}
-.tab:hover{background:#cdd3da;}
-.tab.active{background:#f5f7fa;color:#0072C6;font-weight:700;border:2px solid #ddd;border-bottom:2px solid #f5f7fa;margin-bottom:-2px;}
-.tab .close-tab{margin-left:8px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:50%;font-size:11px;color:#888;transition:all 0.2s;}
-.tab .close-tab:hover{background:#dc3545;color:white;}
-.tab-home{padding:10px 18px;background:#0072C6;color:white;border-radius:8px 8px 0 0;cursor:pointer;font-size:0.85rem;font-weight:600;display:flex;align-items:center;gap:6px;}
-.tab-home.active{background:#005999;}
+tr.data-row:hover{background:var(--color-muted);}
+.tabs-bar{display:flex;background:var(--color-muted);padding:0;min-height:40px;align-items:flex-end;overflow-x:auto;border-bottom:2px solid var(--color-border);margin:-25px -30px 22px;}
+.tab{display:flex;align-items:center;gap:8px;padding:10px 18px;background:var(--color-muted);border-radius:8px 8px 0 0;cursor:pointer;font-size:0.85rem;font-weight:500;color:var(--color-muted-foreground);white-space:nowrap;margin-right:2px;transition:background 0.2s;position:relative;}
+.tab:hover{background:var(--color-muted-foreground);color:var(--color-foreground);}
+.tab.active{background:var(--color-card);color:var(--color-primary);font-weight:700;border:2px solid var(--color-border);border-bottom:2px solid var(--color-card);margin-bottom:-2px;}
+.tab .close-tab{margin-left:8px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:50%;font-size:11px;color:var(--color-muted-foreground);transition:all 0.2s;}
+.tab .close-tab:hover{background:var(--color-destructive);color:white;}
+.tab-home{padding:10px 18px;background:var(--color-primary);color:white;border-radius:8px 8px 0 0;cursor:pointer;font-size:0.85rem;font-weight:600;display:flex;align-items:center;gap:6px;}
+.tab-home.active{background:var(--color-secondary);color:var(--color-foreground);margin-bottom:-2px;}
 .tab-content{display:none;}
 .tab-content.active{display:block;}
-.detail-header{background:linear-gradient(135deg,#0072C6,#005999);color:white;padding:25px 30px;border-radius:12px;margin-bottom:20px;}
+.detail-header{background:linear-gradient(135deg,var(--color-primary),var(--color-secondary));color:white;padding:25px 30px;border-radius:12px;margin-bottom:20px;}
 .detail-header h2{font-size:1.6rem;margin-bottom:5px;}
 .detail-header p{opacity:0.85;}
-.stat-mini{background:white;border-radius:12px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,0.06);text-align:center;cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;}
+.stat-mini{background: var(--color-card);border-radius:12px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,0.06);text-align:center;cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;}
 .stat-mini:hover{transform:translateY(-3px);box-shadow:0 6px 18px rgba(0,0,0,0.1);}
-.stat-mini .num{font-size:1.8rem;font-weight:700;color:#0072C6;}
-.stat-mini .label{font-size:0.85rem;color:#888;margin-top:4px;}
+.stat-mini .num{font-size:1.8rem;font-weight:700;color:var(--color-primary);}
+.stat-mini .label{font-size:0.85rem;color:var(--color-muted-foreground);margin-top:4px;}
 .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:15px;margin-bottom:25px;}
-.info-card{background:white;border-radius:12px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,0.06);}
-.info-card h4{color:#0072C6;margin-bottom:8px;font-size:0.95rem;}
-.info-card p{color:#555;font-size:0.9rem;line-height:1.5;}
+.info-card{background: var(--color-card);border-radius:12px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,0.06);}
+.info-card h4{color:var(--color-primary);margin-bottom:8px;font-size:0.95rem;}
+.info-card p{color:var(--color-muted-foreground);font-size:0.9rem;line-height:1.5;}
 .report-list{max-height:400px;overflow-y:auto;}
-.report-item{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid #f0f0f0;transition:background 0.2s;}
-.report-item:hover{background:#f9f9f9;}
+.report-item{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid var(--color-muted);transition:background 0.2s;}
+.report-item:hover{background:var(--color-muted-foreground transparency);}
 .report-item:last-child{border-bottom:none;}
-.report-item .info{flex:1;}
-.report-item .info strong{color:#333;}
-.report-item .info span{display:block;font-size:0.8rem;color:#999;margin-top:2px;}
+
 @media(max-width:900px){.risk-row,.reminder-row{grid-template-columns:1fr;}.tabs-bar{margin:-25px -30px 22px;}}
 </style>
 @endpush
@@ -115,22 +153,22 @@ tr.data-row:hover{background:#f0f7ff;}
 
 <div class="tab-content active" id="viewHome">
 <div class="stat-row">
-    <div class="stat-card sc-b"><i class="fas fa-building"></i><div><b>{{ $totalBarangays }}</b><span>Total Barangays</span></div></div>
-    <div class="stat-card sc-r"><i class="fas fa-exclamation-triangle"></i><div><b>{{ $highCriticalCount }}</b><span>High / Critical Risk</span></div></div>
-    <div class="stat-card sc-o"><i class="fas fa-file-alt"></i><div><b>{{ array_sum($chart_json['status']) }}</b><span>Total Disaster Reports</span></div></div>
-    <div class="stat-card sc-g"><i class="fas fa-home"></i><div><b>{{ number_format($totalHouseholdsAll) }}</b><span>Total Households</span></div></div>
+    <div class="stat-card primary"><i class="fas fa-building"></i><div><b>{{ $totalBarangays }}</b><span>Total Barangays</span></div></div>
+    <div class="stat-card secondary"><i class="fas fa-exclamation-triangle"></i><div><b>{{ $highCriticalCount }}</b><span>High / Critical Risk</span></div></div>
+    <div class="stat-card success"><i class="fas fa-file-alt"></i><div><b>{{ array_sum($chart_json['status']) }}</b><span>Total Disaster Reports</span></div></div>
+    <div class="stat-card warning"><i class="fas fa-home"></i><div><b>{{ number_format($totalHouseholdsAll) }}</b><span>Total Households</span></div></div>
 </div>
 
 <div class="risk-row">
     <div class="risk-panel">
-        <div class="risk-head"><i class="fas fa-chart-pie" style="color:#7c5cff;"></i> Risk Level Distribution</div>
+        <div class="risk-head"><i class="fas fa-chart-pie" style="color:var(--color-primary);"></i> Risk Level Distribution</div>
         <div class="risk-chart-wrap">
             <canvas id="riskChart"></canvas>
             <div class="risk-donut-center"><b>{{ $totalBarangays }}</b><span>Barangays</span></div>
         </div>
     </div>
     <div class="risk-panel">
-        <div class="risk-head"><i class="fas fa-list-check" style="color:#0072C6;"></i> Barangay Risk Overview</div>
+        <div class="risk-head"><i class="fas fa-list-check" style="color:var(--color-primary);"></i> Barangay Risk Overview</div>
         <div class="risk-list">
             @php
             $riskLevelsOrder = ['Critical', 'High', 'Medium', 'Low'];
@@ -148,20 +186,20 @@ tr.data-row:hover{background:#f0f7ff;}
             @if ($totalBarangays)
                 @foreach ($riskLevelsOrder as $lvl)
                     @if (count($riskBarangays[$lvl]))
-                        <div class="risk-names"><span class="risk-names-lbl r-{{ strtolower($lvl) }}-txt">{{ $lvl }}:</span> {{ implode(', ', $riskBarangays[$lvl]) }}</div>
+                    <div class="risk-names"><span class="risk-names-lbl r-{{ strtolower($lvl) }}-txt">{{ $lvl }}:</span> {{ implode(', ', $riskBarangays[$lvl]) }}</div>
                     @endif
                 @endforeach
             @else
                 <div class="risk-names">No barangays found.</div>
             @endif
-            <div class="risk-legend-total"><span><i class="fas fa-exclamation-triangle" style="color:#dc3545;"></i> High / Critical</span><b style="color:#dc3545;">{{ $highCriticalCount }}</b></div>
+            <div class="risk-legend-total"><span><i class="fas fa-exclamation-triangle" style="color:var(--color-destructive);"></i> High / Critical</span><b style="color:var(--color-destructive);">{{ $highCriticalCount }}</b></div>
         </div>
     </div>
 </div>
 
 <div class="reminder-row">
     <div class="reminder-panel">
-        <div class="reminder-header"><i class="fas fa-bullhorn" style="color:#dc3545;"></i> Latest Announcements</div>
+        <div class="reminder-header"><i class="fas fa-bullhorn" style="color:var(--color-destructive);"></i> Latest Announcements</div>
         <div class="reminder-body">
             @forelse ($announcements as $a)
                 <div class="reminder-item">
@@ -197,22 +235,22 @@ tr.data-row:hover{background:#f0f7ff;}
 
 <div class="chart-row">
     <div class="chart-card">
-        <div class="card-header"><i class="fas fa-users" style="color:#7c5cff;"></i> Population, Households &amp; Heads of Household</div>
+        <div class="card-header"><i class="fas fa-users" style="color:var(--color-primary);"></i> Population, Households & Heads of Household</div>
         <div class="chart-wrap"><canvas id="popChart"></canvas></div>
         <div class="chart-empty" id="popChartEmpty"><i class="fas fa-users"></i>No barangay demographics yet</div>
     </div>
     <div class="chart-card">
-        <div class="card-header"><i class="fas fa-clipboard-check" style="color:#0072C6;"></i> Disaster Reports by Status</div>
+        <div class="card-header"><i class="fas fa-clipboard-check" style="color:var(--color-primary);"></i> Disaster Reports by Status</div>
         <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
         <div class="chart-empty" id="statusChartEmpty"><i class="fas fa-clipboard-check"></i>No disaster reports yet</div>
     </div>
     <div class="chart-card">
-        <div class="card-header"><i class="fas fa-house-damage" style="color:#dc3545;"></i> Damage Extent (Totally vs Partially)</div>
+        <div class="card-header"><i class="fas fa-house-damage" style="color:var(--color-destructive);"></i> Damage Extent (Totally vs Partially)</div>
         <div class="chart-wrap"><canvas id="damageChart"></canvas></div>
         <div class="chart-empty" id="damageChartEmpty"><i class="fas fa-house-damage"></i>No damage data yet</div>
     </div>
     <div class="chart-card">
-        <div class="card-header"><i class="fas fa-file-alt" style="color:#fd7e14;"></i> Disaster Reports by Barangay</div>
+        <div class="card-header"><i class="fas fa-file-alt" style="color:var(--color-primary);"></i> Disaster Reports by Barangay</div>
         <div class="chart-wrap"><canvas id="reportChart"></canvas></div>
         <div class="chart-empty" id="reportChartEmpty"><i class="fas fa-file-alt"></i>No reports yet</div>
     </div>
@@ -231,7 +269,7 @@ tr.data-row:hover{background:#f0f7ff;}
 <div class="card">
     <div class="card-header">
         <h2><i class="fas fa-building"></i> All Barangays</h2>
-        <span style="color:#999; font-size:0.9rem;">{{ count($barangayList) }} total</span>
+        <span style="color:var(--color-muted-foreground); font-size:0.9rem;">{{ count($barangayList) }} total</span>
     </div>
     <table>
         <thead><tr>
@@ -241,7 +279,7 @@ tr.data-row:hover{background:#f0f7ff;}
             @foreach ($barangayList as $b)
                 <tr class="data-row" onclick="openBarangayTab('{{ $b['id'] }}', @js($b['name']))">
                     <td><strong>{{ $b['name'] }}</strong></td>
-                    <td><span class="badge badge-purple">{{ number_format($b['households']) }}</span></td>
+                    <td><span class="badge badge-primary">{{ number_format($b['households']) }}</span></td>
                     <td><span class="badge badge-blue">{{ $b['reports'] }}</span></td>
                     <td><span class="badge badge-orange">{{ $b['pending'] }}</span></td>
                     <td><span class="badge badge-green">{{ $b['approved'] }}</span></td>
@@ -276,41 +314,41 @@ tr.data-row:hover{background:#f0f7ff;}
             <div class="label">Total Reports</div>
         </div>
         <div class="stat-mini">
-            <div class="num" style="color:#fd7e14;">{{ $b['pending'] }}</div>
+            <div class="num" style="color:var(--color-primary);">{{ $b['pending'] }}</div>
             <div class="label">Pending</div>
         </div>
         <div class="stat-mini">
-            <div class="num" style="color:#28a745;">{{ $b['approved'] }}</div>
+            <div class="num" style="color:var(--color-primary);">{{ $b['approved'] }}</div>
             <div class="label">Approved</div>
         </div>
         <div class="stat-mini">
-            <div class="num" style="color:#dc3545;">{{ $b['declined'] }}</div>
+            <div class="num" style="color:var(--color-destructive);">{{ $b['declined'] }}</div>
             <div class="label">Declined</div>
         </div>
         <div class="stat-mini" onclick="showSection('{{ $bid }}','info')">
-            <div class="num" style="color:#666;"><i class="fas fa-info-circle"></i></div>
+            <div class="num" style="color:var(--color-muted);"><i class="fas fa-info-circle"></i></div>
             <div class="label">Barangay Info</div>
         </div>
     </div>
 
     <div class="chart-row" style="margin-bottom:20px;">
         <div class="chart-card">
-            <div class="card-header"><i class="fas fa-users" style="color:#7c5cff;"></i> Population &amp; Households</div>
+            <div class="card-header"><i class="fas fa-users" style="color:var(--color-primary);"></i> Population & Households</div>
             <div class="chart-wrap"><canvas id="vpop_{{ $bid }}"></canvas></div>
             <div class="chart-empty" id="vpopE_{{ $bid }}"><i class="fas fa-users"></i>No demographic data yet</div>
         </div>
         <div class="chart-card">
-            <div class="card-header"><i class="fas fa-chart-line" style="color:#0072C6;"></i> Disaster Reports Over Time</div>
+            <div class="card-header"><i class="fas fa-chart-line" style="color:var(--color-primary);"></i> Disaster Reports Over Time</div>
             <div class="chart-wrap"><canvas id="vtime_{{ $bid }}"></canvas></div>
             <div class="chart-empty" id="vtimeE_{{ $bid }}"><i class="fas fa-chart-line"></i>No reports yet</div>
         </div>
         <div class="chart-card">
-            <div class="card-header"><i class="fas fa-clipboard-check" style="color:#28a745;"></i> Reports by Status</div>
+            <div class="card-header"><i class="fas fa-clipboard-check" style="color:var(--color-primary);"></i> Reports by Status</div>
             <div class="chart-wrap"><canvas id="vstatus_{{ $bid }}"></canvas></div>
             <div class="chart-empty" id="vstatusE_{{ $bid }}"><i class="fas fa-clipboard-check"></i>No reports yet</div>
         </div>
         <div class="chart-card">
-            <div class="card-header"><i class="fas fa-house-damage" style="color:#dc3545;"></i> Damage Extent</div>
+            <div class="card-header"><i class="fas fa-house-damage" style="color:var(--color-destructive);"></i> Damage Extent</div>
             <div class="chart-wrap"><canvas id="vdamage_{{ $bid }}"></canvas></div>
             <div class="chart-empty" id="vdamageE_{{ $bid }}"><i class="fas fa-house-damage"></i>No damage data yet</div>
         </div>
@@ -362,7 +400,7 @@ tr.data-row:hover{background:#f0f7ff;}
             </div>
 
             @if ($contactsRow)
-            <h3 style="margin:20px 0 12px; color:#0072C6;"><i class="fas fa-phone"></i> Emergency Contacts</h3>
+            <h3 style="margin:20px 0 12px; color:var(--color-primary);"><i class="fas fa-phone"></i> Emergency Contacts</h3>
             <div class="info-grid">
                 <div class="info-card"><h4>Barangay Hall</h4><p>{{ $contactsRow->barangay_hall_phone ?? 'N/A' }}</p></div>
                 <div class="info-card"><h4>Chairman</h4><p>{{ $contactsRow->barangay_chairman_phone ?? 'N/A' }}</p></div>
@@ -374,8 +412,8 @@ tr.data-row:hover{background:#f0f7ff;}
             @endif
         </div>
     </div>
-</div>
 @endforeach
+
 @endsection
 
 @push('scripts')
@@ -391,7 +429,7 @@ function filterBarangays() {
     });
 }
 
-const C_COLORS = ['#0072C6','#28a745','#fd7e14','#dc3545','#6f42c1','#20c997','#ffc107','#e83e8c','#17a2b8','#6c757d','#e8710a','#0097a7','#00c853','#5f6368'];
+const C_COLORS = ['#1E40AF','#3B82F6','#16A34A','#D97706','#DC2626','#6f42c1','#20c997','#e83e8c','#17a2b8','#6c757d','#e8710a','#0097a7','#00c853','#5f6368'];
 function cColors(n){ return Array.from({length:n},(_,i)=>C_COLORS[i%C_COLORS.length]); }
 
 let openTabs = {};
@@ -464,10 +502,13 @@ mountChart('popChart','popChartEmpty','line', CH.barangays, [
 ], { scales:{ y:{ beginAtZero:true } } });
 
 mountChart('statusChart','statusChartEmpty','doughnut', sLbl, [{ data:sDat, backgroundColor:sCol, borderWidth:2, borderColor:'#fff' }], { plugins:{ legend:{ position:'bottom' } } });
+
 mountChart('damageChart','damageChartEmpty','doughnut', ['Totally','Partially'], [{ data:[CH.damage.Totally, CH.damage.Partially], backgroundColor:['#dc3545','#fd7e14'], borderWidth:2, borderColor:'#fff' }], { plugins:{ legend:{ position:'bottom' } } });
+
 mountChart('reportChart','reportChartEmpty','line', CH.barangays, [
     { label:'Reports', data:CH.reports, borderColor:'#fd7e14', backgroundColor:'rgba(253,126,20,0.15)', fill:true, tension:0.3, pointRadius:5, borderWidth:2 }
 ], { scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } }, plugins:{ legend:{ display:false } } });
+
 mountChart('statusByBrgyChart','statusByBrgyChartEmpty','line', CH.status_by_brgy.labels,
     statusMeta.map(m=>({ label:m[1], data:CH.status_by_brgy[m[0]], borderColor:m[2], backgroundColor:m[2]+'22', fill:false, tension:0.3, pointRadius:4, borderWidth:2 })),
     { scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } });
@@ -516,7 +557,5 @@ function renderBarangayCharts(id){
     const c4 = bMount(id,'vdamage_'+id,'vdamageE_'+id,'doughnut', ['Totally','Partially'], [{ data: [d.damage.Totally, d.damage.Partially], backgroundColor: ['#dc3545','#fd7e14'], borderWidth: 2, borderColor: '#fff' }]);
     if (c4) bCharts[id].push(c4);
 }
-
-
 </script>
 @endpush

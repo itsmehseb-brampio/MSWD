@@ -11,39 +11,42 @@
 </head>
 <body>
 <div class="layout">
-    @include('layouts.barangay-sidebar', ['riskLevel' => $sideRisk])
+    <!-- Sidebar Wrapper with non-overlapping logic -->
+    <div class="sidebar-wrapper" id="sidebar-wrapper">
+        @include('layouts.barangay-sidebar', ['riskLevel' => $sideRisk])
 
-    <div class="main">
-        <header class="header">
-            <button class="menu-toggle" onclick="openSidebar()"><i class="fas fa-bars"></i></button>
-            <h1 class="header-title">@yield('headerTitle')</h1>
-            <div class="profile-area" onclick="toggleDropdown(event)">
-                <span class="profile-name">{{ $barangayProfile->barangay_name }}</span>
-                <img src="{{ uimg($barangayProfile->detail->logo ?? null) }}" alt="Barangay logo">
-                <i class="fas fa-chevron-down caret"></i>
-                <div id="dropdownMenu" class="dropdown-menu">
-                    <a class="dropdown-item" href="{{ route('barangay.logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <div class="main" id="main-content">
+            <header class="header">
+                <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                <h1 class="header-title">@yield('headerTitle')</h1>
+                <div class="profile-area" onclick="toggleDropdown(event)">
+                    <span class="profile-name">{{ $barangayProfile->barangay_name }}</span>
+                    <img src="{{ uimg($barangayProfile->detail->logo ?? null) }}" alt="Barangay logo">
+                    <i class="fas fa-chevron-down caret"></i>
+                    <div id="dropdownMenu" class="dropdown-menu">
+                        <a class="dropdown-item" href="{{ route('barangay.logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
                 </div>
-            </div>
-        </header>
+            </header>
 
-        @if (session('success'))
-            <div id="toast" class="toast toast-ok">
-                <i class="fas fa-check-circle"></i>
-                <span>{{ session('success') }}</span>
-                <span class="toast-close" onclick="closeToast()">&times;</span>
-            </div>
-        @endif
-        @if (session('error'))
-            <div id="toast" class="toast toast-err">
-                <i class="fas fa-exclamation-circle"></i>
-                <span>{{ session('error') }}</span>
-                <span class="toast-close" onclick="closeToast()">&times;</span>
-            </div>
-        @endif
+            @if (session('success'))
+                <div id="toast" class="toast toast-ok">
+                    <i class="fas fa-check-circle"></i>
+                    <span>{{ session('success') }}</span>
+                    <span class="toast-close" onclick="closeToast()">&times;</span>
+                </div>
+            @endif
+            @if (session('error'))
+                <div id="toast" class="toast toast-err">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>{{ session('error') }}</span>
+                    <span class="toast-close" onclick="closeToast()">&times;</span>
+                </div>
+            @endif
 
-        <div class="content">
-            @yield('content')
+            <div class="content">
+                @yield('content')
+            </div>
         </div>
     </div>
 </div>
@@ -67,13 +70,51 @@ setTimeout(function () {
     var t = document.getElementById('toast');
     if (t) t.style.display = 'none';
 }, 4000);
+</script>
+
+<script>
+/* Sidebar toggle with non-overlapping logic */
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.getElementById('main-content');
+    const wrapper = document.getElementById('sidebar-wrapper');
+    const isOpen = !sidebar.classList.contains('sidebar-open');
+
+    if (isOpen) {
+        sidebar.classList.add('sidebar-open');
+        sidebar.classList.remove('hide');
+        mainContent.classList.add('content-expanded');
+        wrapper.style.marginLeft = '0';
+        mainContent.style.marginLeft = '260px';
+    } else {
+        sidebar.classList.remove('sidebar-open');
+        mainContent.classList.remove('content-expanded');
+        wrapper.style.marginLeft = '-260px';
+        mainContent.style.marginLeft = '0';
+    }
+}
+
+// Keep existing openSidebar/closeSidebar for backward compatibility
 function openSidebar() {
-    document.querySelector('.sidebar').classList.add('open');
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.getElementById('main-content');
+    sidebar.classList.add('sidebar-open');
+    sidebar.classList.remove('hide');
+    mainContent.classList.add('content-expanded');
+    wrapper.style.marginLeft = '0';
+    mainContent.style.marginLeft = '260px';
 }
 function closeSidebar() {
-    document.querySelector('.sidebar').classList.remove('open');
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.getElementById('main-content');
+    sidebar.classList.remove('sidebar-open');
+    mainContent.classList.remove('content-expanded');
+    sidebar.classList.add('hide');
+    wrapper.style.marginLeft = '-260px';
+    mainContent.style.marginLeft = '0';
 }
 </script>
+
 @stack('scripts')
 </body>
 </html>

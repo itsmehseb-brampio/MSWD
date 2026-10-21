@@ -6,7 +6,8 @@ function canAdmin($perm) {
     return $u && $u->hasPerm($perm);
 }
 @endphp
-<div class="sidebar" id="sidebar">
+<!-- Admin Sidebar -->
+<aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <span class="close-btn" onclick="closeSidebar()"><i class="fas fa-times"></i></span>
         <div class="logo-ring"><img src="{{ asset('mapa.png') }}" alt="Logo"></div>
@@ -25,7 +26,7 @@ function canAdmin($perm) {
         @if (canAdmin('manage_admin_accounts') || canAdmin('manage_barangay_accounts'))
         <li>
             <a href="{{ route('admin.roles') }}" class="sidebar-btn {{ in_array($route, ['admin.roles','admin.admins','admin.barangay']) ? 'active' : '' }}">
-                <i class="fas fa-user-cog"></i> <span>Roles &amp; Permissions</span>
+                <i class="fas fa-user-cog"></i> <span>Roles & Permissions</span>
             </a>
         </li>
         @endif
@@ -89,11 +90,10 @@ function canAdmin($perm) {
         @endif
     </ul>
     <div class="sidebar-footer"><i class="fas fa-map-marker-alt"></i> Malilipot, Albay</div>
-</div>
-
-<button class="sidebar-edge" onclick="openSidebar()" title="Show menu"><i class="fas fa-bars"></i></button>
+</aside>
 
 <script>
+/* Sidebar toggle functionality - preserved from original */
 function openSidebar() {
     const sidebar = document.getElementById("sidebar");
     sidebar.classList.remove("hide");

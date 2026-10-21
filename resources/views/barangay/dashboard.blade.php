@@ -6,10 +6,26 @@
 @section('content')
 
 <style>
+/* CSS variables loaded from app.css */
+:root {
+    --color-primary: #1E40AF;
+    --color-secondary: #3B82F6;
+    --color-accent: #16A34A;
+    --color-background: #EFF6FF;
+    --color-foreground: #1E3A8A;
+    --color-card: #FFFFFF;
+    --color-muted: #E9EFF5;
+    --color-muted-foreground: #475569;
+    --color-border: #BFDBFE;
+    --color-destructive: #DC2626;
+    --color-ring: #1E40AF;
+}
+
+/* Hero Section */
 .dash-hero {
-    background: linear-gradient(120deg, #11998e 0%, #0b6e4f 100%);
+    background: var(--color-primary);
+    color: #FFFFFF;
     border-radius: 14px;
-    color: #fff;
     padding: 24px 26px;
     display: flex;
     align-items: center;
@@ -27,6 +43,8 @@
     font-size: 0.85rem;
     font-weight: 600;
 }
+
+/* Stat Grid */
 .stat-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -34,7 +52,7 @@
     margin-bottom: 22px;
 }
 .stat-card {
-    background: #fff;
+    background: var(--color-card);
     border-radius: 12px;
     padding: 18px;
     display: flex;
@@ -52,23 +70,26 @@
     font-size: 1.3rem;
     color: #fff;
 }
-.stat-icon.blue { background: #0072C6; }
-.stat-icon.green { background: #28a745; }
-.stat-icon.orange { background: #fd7e14; }
-.stat-icon.red { background: #dc3545; }
-.stat-info h3 { font-size: 1.5rem; color: #222; line-height: 1.1; }
-.stat-info p { font-size: 0.82rem; color: #777; font-weight: 600; margin-top: 2px; }
+.stat-icon.primary { background: var(--color-primary); }
+.stat-icon.success { background: var(--color-accent); }
+.stat-icon.info { background: var(--color-secondary); }
+.stat-icon.warning { background: #D97706; }
+.stat-icon.danger { background: var(--color-destructive); }
 
+.stat-info h3 { font-size: 1.5rem; color: var(--color-foreground); line-height: 1.1; }
+.stat-info p { font-size: 0.82rem; color: var(--color-muted-foreground); font-weight: 600; margin-top: 2px; }
+
+/* Risk Row */
 .risk-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 22px; }
 @media (max-width: 1000px) { .risk-row { grid-template-columns: 1fr; } }
 .risk-panel {
-    background: #fff;
+    background: var(--color-card);
     border-radius: 12px;
     padding: 20px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
 .risk-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-.risk-head h3 { font-size: 1rem; color: #333; }
+.risk-head h3 { font-size: 1rem; color: var(--color-foreground); }
 .risk-badge {
     padding: 5px 12px;
     border-radius: 20px;
@@ -90,49 +111,51 @@
     color: inherit;
     display: block;
 }
-.risk-gauge-center small { display: block; font-size: 0.7rem; color: #888; font-weight: 700; }
-.risk-desc { margin-top: 12px; font-size: 0.85rem; color: #666; }
+.risk-gauge-center small { display: block; font-size: 0.7rem; color: var(--color-muted-foreground); font-weight: 700; }
+.risk-desc { margin-top: 12px; font-size: 0.85rem; color: var(--color-muted-foreground); }
 
+/* Charts Row */
 .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 22px; }
 @media (max-width: 1000px) { .charts-row { grid-template-columns: 1fr; } }
 .chart-card {
-    background: #fff;
+    background: var(--color-card);
     border-radius: 12px;
     padding: 20px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
-.chart-card h3 { font-size: 0.95rem; color: #333; margin-bottom: 16px; }
+.chart-card h3 { font-size: 0.95rem; color: var(--color-foreground); margin-bottom: 16px; }
 
+/* Contacts Card */
 .contacts-card {
-    background: #fff;
+    background: var(--color-card);
     border-radius: 12px;
     padding: 20px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
-.contacts-card h3 { font-size: 1rem; color: #333; margin-bottom: 16px; }
+.contacts-card h3 { font-size: 1rem; color: var(--color-foreground); margin-bottom: 16px; }
 .contact-item {
     display: flex;
     align-items: center;
     gap: 13px;
     padding: 10px 0;
-    border-bottom: 1px solid #f1f1f1;
+    border-bottom: 1px solid var(--color-muted);
 }
 .contact-item:last-child { border-bottom: none; }
 .contact-item i {
     width: 38px;
     height: 38px;
     border-radius: 10px;
-    background: #eafaf6;
-    color: #11998e;
+    background: var(--color-muted);
+    color: var(--color-primary);
     display: flex;
     align-items: center;
     justify-content: center;
 }
-.contact-item .c-label { font-size: 0.85rem; color: #555; flex: 1; }
-.contact-item .c-phone { font-weight: 700; color: #222; font-size: 0.95rem; }
+.contact-item .c-label { font-size: 0.85rem; color: var(--color-muted-foreground); flex: 1; }
+.contact-item .c-phone { font-weight: 700; color: var(--color-foreground); font-size: 0.95rem; }
 .contact-empty {
     text-align: center;
-    color: #999;
+    color: var(--color-muted-foreground);
     font-size: 0.9rem;
     padding: 18px 0;
 }
@@ -141,35 +164,35 @@
 <div class="dash-hero">
     <div>
         <h2>Welcome, {{ $barangay->barangay_name }}!</h2>
-        <p><i class="fas fa-calendar-day"></i> {{ now()->format('F j, Y') }} &nbsp;|&nbsp; Barangay Disaster Monitoring &amp; Management</p>
+        <p><i class="fas fa-calendar-day"></i> {{ now()->format('F j, Y') }} &nbsp;|&nbsp; Barangay Disaster Monitoring & Management</p>
     </div>
     <div class="hero-badge"><i class="fas fa-shield-halved"></i> Disaster Risk Level: {{ $riskCur['level'] }}</div>
 </div>
 
 <div class="stat-grid">
     <div class="stat-card">
-        <div class="stat-icon blue"><i class="fas fa-file-alt"></i></div>
+        <div class="stat-icon primary"><i class="fas fa-file-alt"></i></div>
         <div class="stat-info">
             <h3>{{ number_format($reportCount) }}</h3>
             <p>Total Reports</p>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon green"><i class="fas fa-phone"></i></div>
+        <div class="stat-icon success"><i class="fas fa-phone"></i></div>
         <div class="stat-info">
             <h3>{{ $emergencyActive ? 'Active' : 'None' }}</h3>
             <p>Emergency Contacts</p>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon orange"><i class="fas fa-users"></i></div>
+        <div class="stat-icon info"><i class="fas fa-users"></i></div>
         <div class="stat-info">
             <h3>{{ number_format((int) ($detail->population ?? 0)) }}</h3>
             <p>Population</p>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon red"><i class="fas fa-home"></i></div>
+        <div class="stat-icon warning"><i class="fas fa-home"></i></div>
         <div class="stat-info">
             <h3>{{ number_format((int) ($detail->households ?? 0)) }}</h3>
             <p>Households</p>
@@ -196,7 +219,7 @@
     <div class="risk-panel">
         <div class="risk-head">
             <h3><i class="fas fa-tasks"></i> Disaster Reports ({{ number_format($reportCount) }})</h3>
-            <a href="{{ route('barangay.disaster.history') }}" style="font-size:0.8rem;color:#11998e;font-weight:600;">View All <i class="fas fa-arrow-right"></i></a>
+            <a href="{{ route('barangay.disaster.history') }}" style="font-size:0.8rem;color:var(--color-primary);font-weight:600;">View All <i class="fas fa-arrow-right"></i></a>
         </div>
         @foreach ($status as $key => $count)
             @php
@@ -233,7 +256,7 @@
             <span class="c-phone">{{ $c['phone'] }}</span>
         </div>
     @empty
-        <div class="contact-empty">No emergency contacts saved yet. <a href="{{ route('barangay.info') }}" style="color:#11998e;">Add contacts</a></div>
+        <div class="contact-empty">No emergency contacts saved yet. <a href="{{ route('barangay.info') }}" style="color:var(--color-primary);">Add contacts</a></div>
     @endforelse
 </div>
 
