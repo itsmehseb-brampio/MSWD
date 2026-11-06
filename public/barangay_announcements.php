@@ -142,20 +142,18 @@ function renderFeatured(items){
 
     let html = '';
     if(pinned){
-        const t = new Date(pinned.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
         html += '<div class="featured-card pinned">'+
             '<div class="featured-label pin"><i class="fas fa-thumbtack"></i> Pinned</div>'+
             '<div class="featured-title">'+esc(pinned.title)+'</div>'+
             '<div class="featured-msg">'+esc(pinned.message)+'</div>'+
-            '<div class="featured-meta"><i class="fas fa-user-shield"></i> '+esc(pinned.admin_name||'Admin')+' · '+t+'</div></div>';
+            '<div class="featured-meta"><i class="fas fa-user-shield"></i> '+esc(pinned.admin_name||'Admin')+'</div></div>';
     }
     if(recent && recent !== pinned){
-        const t = new Date(recent.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
         html += '<div class="featured-card recent">'+
             '<div class="featured-label rec"><i class="fas fa-clock"></i> Latest</div>'+
             '<div class="featured-title">'+esc(recent.title)+'</div>'+
             '<div class="featured-msg">'+esc(recent.message)+'</div>'+
-            '<div class="featured-meta"><i class="fas fa-user-shield"></i> '+esc(recent.admin_name||'Admin')+' · '+t+'</div></div>';
+            '<div class="featured-meta"><i class="fas fa-user-shield"></i> '+esc(recent.admin_name||'Admin')+'</div></div>';
     }
     if(!pinned && recent){
         html += '<div class="featured-empty">No pinned announcement</div>';
@@ -170,12 +168,11 @@ function renderList(items){
     const el = document.getElementById('announceList');
     if(!items.length){el.innerHTML='<div class="empty"><i class="fas fa-bullhorn"></i><p>No announcements yet</p></div>';return;}
     el.innerHTML = items.map(a=>{
-        const t = new Date(a.created_at).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
         const pin = a.is_pinned==1?'<span class="badge-pin"><i class="fas fa-thumbtack"></i> Pinned</span>':'';
         return '<div class="announce-card '+(a.is_pinned==1?'pinned':'')+'">'+
             '<div class="announce-top"><div class="announce-title">'+esc(a.title)+'</div><div>'+pin+'</div></div>'+
             '<div class="announce-msg">'+esc(a.message)+'</div>'+
-            '<div class="announce-meta"><i class="fas fa-user-shield"></i> '+esc(a.admin_name||'Admin')+' · '+t+'</div></div>';
+            '<div class="announce-meta"><i class="fas fa-user-shield"></i> '+esc(a.admin_name||'Admin')+'</div></div>';
     }).join('');
 }
 

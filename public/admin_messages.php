@@ -76,10 +76,8 @@ body{font-family:'Roboto','Segoe UI',sans-serif;background:#f5f7fa;min-height:10
 .gc-bubble{background:#fff;border-radius:14px;padding:9px 14px;box-shadow:0 1px 2px rgba(0,0,0,.08);}
 .gc-name{font-size:.72rem;font-weight:600;margin-bottom:3px;}
 .gc-text{font-size:.9rem;line-height:1.45;color:#202124;word-wrap:break-word;}
-.gc-time{font-size:.65rem;color:#9aa0a6;margin-top:4px;text-align:right;}
 .gc-msg.own{align-self:flex-end;flex-direction:row-reverse;}
 .gc-msg.own .gc-bubble{background:#d2e3fc;}
-.gc-date-divider{align-self:center;background:#e8eaed;color:#5f6368;font-size:.7rem;font-weight:500;padding:3px 12px;border-radius:12px;margin:14px 0;}
 .gc-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#9aa0a6;}
 .gc-empty i{font-size:3.2rem;margin-bottom:12px;}
 .gc-empty p{font-size:1rem;}
@@ -175,10 +173,6 @@ function nameColor(id){
     return PALETTE[sum%PALETTE.length];
 }
 function escHtml(s){ return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
-function fmtTime(t){
-    const d=new Date(t);
-    return d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-}
 
 /* ---- ACCOUNTS PANEL ---- */
 function loadAccounts(){
@@ -243,13 +237,11 @@ function renderGroup(msgs){
         container.innerHTML=msgs.map(m=>{
             const own=m.own?' own':'';
             const fg=nameColor(m.sender_id);
-            const time=fmtTime(m.created_at);
             return '<div class="gc-msg'+own+'">'+
                 '<div class="gc-avatar">'+avatarHtml(m.sender_logo,m.sender_name,'#fff')+'</div>'+
                 '<div><div class="gc-bubble">'+
                     (own?'':'<div class="gc-name" style="color:'+fg+'">'+escHtml(m.sender_name)+'</div>')+
                     '<div class="gc-text">'+escHtml(m.message)+'</div>'+
-                    '<div class="gc-time">'+time+'</div>'+
                 '</div></div></div>';
         }).join('');
     }

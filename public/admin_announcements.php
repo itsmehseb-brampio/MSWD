@@ -194,7 +194,6 @@ function renderAnnouncements(items){
     const el=document.getElementById('announceList');
     if(!items.length){el.innerHTML='<div class="empty"><i class="fas fa-bullhorn"></i><p>No announcements</p></div>';return;}
     el.innerHTML=items.map(a=>{
-        const t=new Date(a.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
         const pin=a.is_pinned==1?'<span class="badge-pin"><i class="fas fa-thumbtack"></i></span>':'';
         const tgt=a.target_all?'<span class="badge-all"><i class="fas fa-globe"></i> All</span>':
             '<span class="badge-target"><i class="fas fa-bullseye"></i> '+a.targets.map(x=>x.barangay_name).join(', ')+'</span>';
@@ -205,7 +204,7 @@ function renderAnnouncements(items){
             '<div class="announce-top"><div class="announce-title">'+esc(a.title)+'</div>'+
             '<div class="announce-badges">'+pin+tgt+'</div></div>'+
             '<div class="announce-msg">'+esc(a.message)+'</div>'+
-            '<div class="announce-meta"><span><i class="fas fa-user-shield"></i> '+esc(a.admin_name||'Admin')+' · '+t+'</span>'+
+            '<div class="announce-meta"><span><i class="fas fa-user-shield"></i> '+esc(a.admin_name||'Admin')+'</span>'+
             '<div class="announce-actions">'+pb+
             '<button class="btn-delete" onclick="deleteAnn('+a.announcement_id+')"><i class="fas fa-trash"></i></button>'+
             '</div></div></div>';
