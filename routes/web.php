@@ -42,6 +42,14 @@ Route::get('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::get('/invite/{token}', [InviteController::class, 'signup'])->name('invite.signup');
 Route::post('/invite/{token}', [InviteController::class, 'complete'])->name('invite.complete');
 
+// Malilipot municipality hazard map for barangay accounts
+Route::middleware('auth:barangay')->group(function () {
+    Route::get('/malilipot/hazard-map', [App\Http\Controllers\MalilipotHazardMapController::class, 'edit'])->name('malilipot.hazard_map');
+    Route::post('/malilipot/hazard-map', [App\Http\Controllers\MalilipotHazardMapController::class, 'update'])->name('malilipot.hazard_map.update');
+    Route::get('/malilipot/hazard-map/view', [App\Http\Controllers\MalilipotHazardMapController::class, 'view'])->name('malilipot.hazard_map_view');
+    Route::post('/malilipot/api/hazard-map/{action}', [App\Http\Controllers\Api\MalilipotHazardMapApiController::class, 'handle']);
+});
+
 // ============== MSWD / ADMIN ROUTES ==============
 Route::prefix('admin')->group(function () {
     Route::get('/', fn () => redirect()->route('admin.dashboard'));
@@ -72,12 +80,10 @@ Route::prefix('admin')->group(function () {
         Route::post('/barangays', [BarangayManagementController::class, 'store'])->name('admin.barangay.store');
         Route::post('/barangays/update', [BarangayManagementController::class, 'update'])->name('admin.barangay.update');
         Route::post('/barangays/delete', [BarangayManagementController::class, 'destroy'])->name('admin.barangay.delete');
-
         Route::post('/barangays/toggle-disaster', [BarangayManagementController::class, 'toggleDisaster'])->name('admin.barangay.toggle_disaster');
 
         Route::get('/municipal-contacts', [MunicipalContactsController::class, 'index'])->name('admin.municipal');
         Route::post('/municipal-contacts', [MunicipalContactsController::class, 'update'])->name('admin.municipal.update');
-
         Route::get('/contact', [ContactController::class, 'index'])->name('admin.contact');
 
         Route::get('/disaster/format', [DisasterController::class, 'format'])->name('admin.disaster.format');
