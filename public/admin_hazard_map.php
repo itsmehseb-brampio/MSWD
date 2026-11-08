@@ -18,10 +18,10 @@ $barangayStats = $conn->query(
      FROM barangays
      LEFT JOIN barangay_details ON barangay_details.barangay_id = barangays.barangay_id"
 );
-if (!$barangayResult) {
+if (!$barangayStats) {
     throw new RuntimeException('Unable to load barangay hazard summary: ' . $conn->error);
 }
-$barangayStats = $barangayResult->fetch_assoc();
+$barangayStats = $barangayStats->fetch_assoc();
 $adminName = $_SESSION['admin_username'] ?? $_SESSION['admin_name'] ?? 'Administrator';
 ?>
 
