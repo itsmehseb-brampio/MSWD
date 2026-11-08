@@ -23,7 +23,8 @@ $mapJson = json_encode(
     <div id="municipal-hazard-map" role="region" aria-label="Malilipot municipality hazard map"></div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></link>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
 <script>
