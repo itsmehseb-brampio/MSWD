@@ -95,7 +95,9 @@ Route::prefix('admin')->group(function () {
         Route::get('/disaster/history', [DisasterController::class, 'history'])->name('admin.disaster.history');
         Route::post('/disaster/review', [DisasterController::class, 'review'])->name('admin.disaster.review');
 
-        Route::get('/hazard-map', [HazardMapController::class, 'index'])->name('admin.hazard_map');
+        Route::get('/hazard-map', [App\Http\Controllers\Admin\HazardMapController::class, 'index'])->name('admin.hazard_map');
+        Route::get('/hazard-map/view', [App\Http\Controllers\Admin\HazardMapController::class, 'view'])->name('admin.hazard_map_view');
+        Route::get('/hazard-map/barangays', [HazardMapController::class, 'index'])->name('admin.hazard_map.barangays');
         Route::get('/messages', [MessagesController::class, 'index'])->name('admin.messages');
         Route::get('/announcements', [AnnouncementsController::class, 'index'])->name('admin.announcements');
         Route::get('/relief', [ReliefController::class, 'index'])->name('admin.relief');
