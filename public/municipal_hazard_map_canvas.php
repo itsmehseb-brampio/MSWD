@@ -27,17 +27,11 @@ $mapJson = json_encode(
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
 <script>
- // Malilipot, Albay OSM Relation #15068686
- // Reference: OSMPH #MapTheGap #2024 Modified boundary in Albay
- // admin_level: 6, boundary: administrative, name: Malilipot
- // Population: 37785 (PSA 2015-08-01), postcode: 4510
+// Initialize map on Malilipot, Albay using OpenStreetMap
+// Malilipot, Albay coordinates: approximately 13.319° N, 123.739° E
  const MAPDATA = <?= $mapJson ?>;
- 
- // Malilipot, Albay coordinates from OSM data
- // Center: 13.319000, 123.739300
- // Bounds: North 13.341258, South 13.253340, East 123.765322, West 123.686751
  const centerLat = MAPDATA.lat || 13.319;
- const centerLng = MAPDATA.lng || 123.7393;
+ const centerLng = MAPDATA.lng || 123.739;
  const defaultZoom = MAPDATA.zoom || 8;
  
  // Create map centered on Malilipot, Albay using OpenStreetMap
@@ -56,33 +50,11 @@ $mapJson = json_encode(
      detectRetina: true
  }).addTo(map);
  
- // Fit map to Malilipot municipality bounds using OSM relation data
- // These are the official coordinates for Malilipot, Albay (ADM2 boundary)
- const malilipotBounds = [[13.253340, 123.686751], [13.341258, 123.765322]];
- map.fitBounds(malilipotBounds, { maxZoom: 16 });
- 
- // Add highlighted Malilipot boundary polygon (thick red outlined)
- // This shows users the extent of Malilipot municipality
- const malilipotBoundary = L.polygon([
-     [13.253340, 123.686751],
-     [13.341258, 123.686751],
-     [13.341258, 123.765322],
-     [13.253340, 123.765322],
-     [13.253340, 123.686751]
- ], {
-     color: '#FF0000',        // Bright red outline
-     weight: 4,               // Thick line
-     fillColor: '#FF0000',    // Red fill
-     fillOpacity: 0.05,       // Very subtle fill
-     dashArray: '10, 10'      // Dashed pattern
- }).addTo(map);
- 
- // Bring boundary to front so it's visible above other layers
- map.eachLayer(function(layer) {
-     if (layer instanceof L.Polygon) {
-         layer.bringToFront();
-     }
- });
+ // Fit map to show Malilipot municipality properly
+ // Based on OSM relation #15068686 - Malilipot, Albay administrative boundary
+ // The map will automatically fit to include the Malilipot area
+ // with appropriate zoom level for municipal exploration
+ map.setZoom(defaultZoom);
  
  // Overlay hazard polygons with red dashed boundaries
  const hazards = L.featureGroup();

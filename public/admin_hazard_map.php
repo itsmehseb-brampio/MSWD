@@ -60,7 +60,7 @@ $adminName = $_SESSION['admin_username'] ?? $_SESSION['admin_name'] ?? 'Administ
         .admin-profile img { width: 40px; height: 40px; border: 2px solid #fff; border-radius: 50%; object-fit: cover; }
         .dropdown { display: none; position: absolute; top: 70px; right: 30px; z-index: 1002; min-width: 150px; overflow: hidden; border-radius: 10px; background: #fff; box-shadow: 0 5px 20px rgba(0, 0, 0, .15); }
         .dropdown.show { display: block; }
-        .dropdown a { display: flex; align-items: gap: 10px; padding: 12px 20px; color: #333; text-decoration: none; }
+        .dropdown a { display: flex; align-items: center; gap: 10px; padding: 12px 20px; color: #333; text-decoration: none; }
         .dropdown a:hover { background: #f5f5f5; color: #0072C6; }
         .page-content { max-width: 1500px; margin: 0 auto; padding: 24px; }
         .admin-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
