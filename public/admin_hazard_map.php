@@ -10,7 +10,7 @@ require_once __DIR__ . '/municipal_hazard_map_data.php';
 
 $current_page = 'admin_hazard_map.php';
 $mapData = loadMunicipalHazardMapData($conn);
-$barangayResult = $conn->query(
+$barangayStats = $conn->query(
     "SELECT COUNT(DISTINCT barangays.barangay_id) AS total_barangays,
             COUNT(DISTINCT CASE
                 WHEN barangay_details.risk_level IN ('High', 'Critical') THEN barangays.barangay_id
@@ -97,16 +97,6 @@ $adminName = $_SESSION['admin_username'] ?? $_SESSION['admin_name'] ?? 'Administ
                 </div>
             </header>
             <main class="page-content">
-                <section class="admin-summary" aria-label="Barangay hazard summary">
-                    <div class="summary-card">
-                        <span>Total barangays</span>
-                        <strong><?= number_format((int) ($barangayStats['total_barangays'] ?? 0)) ?></strong>
-                    </div>
-                    <div class="summary-card">
-                        <span>High or critical risk</span>
-                        <strong><?= number_format((int) ($barangayStats['high_or_critical'] ?? 0)) ?></strong>
-                    </div>
-                </section>
                 <?php require __DIR__ . '/municipal_hazard_map_canvas.php'; ?>
             </main>
         </div>

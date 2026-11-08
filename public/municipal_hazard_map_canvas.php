@@ -10,7 +10,7 @@ $mapJson = json_encode(
 .map-summary { padding: 20px; }
 .map-summary h2 { color: #1E3A8A; font-size: 1.05rem; margin: 0 0 14px; }
 .map-summary p { color: #475569; font-size: .88rem; line-height: 1.5; margin: 0 0 14px; }
-.map-stat { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid #E9EFF5; color: #475569; font-size: .88rem; }
+.map-stat { display: flex; justify-content: space-between; gap: 10x; padding: 10px 0; border-top: 1px solid #E9EFF5; color: #475569; font-size: .88rem; }
 .map-stat strong { color: #1E3A8A; text-align: right; }
 .risk-badge { display: inline-block; border-radius: 14px; background: #1E40AF; color: #fff; padding: 4px 11px; font-size: .78rem; }
 .map-canvas { min-height: 500px; overflow: hidden; }
@@ -19,96 +19,142 @@ $mapJson = json_encode(
 @media (max-width: 900px) { .municipal-map { grid-template-columns: 1fr; } .map-canvas, #municipal-hazard-map { min-height: 420px; } }
 </style>
 
-<div class="municipal-map">
-    <section class="map-summary" aria-label="Hazard map summary">
-        <h2>Malilipot Municipality, Albay</h2>
-        <p>Municipality-wide hazard map.</p>
-        <div class="map-stat"><span>Overall risk</span><strong><span class="risk-badge"><?= htmlspecialchars($mapData['risk_level'], ENT_QUOTES, 'UTF-8') ?></span></strong></div>
-        <div class="map-stat"><span>Hazard zones</span><strong><?= number_format($mapData['total_polygons']) ?></strong></div>
-        <div class="map-stat"><span>Point markers</span><strong><?= number_format($mapData['total_points']) ?></strong></div>
-        <div class="map-stat"><span>Last saved</span><strong><?= htmlspecialchars($mapData['updated_at'] ?: 'Not saved yet', ENT_QUOTES, 'UTF-8') ?></strong></div>
-        <?php if (!$mapData['has_data']): ?>
-            <div class="map-empty" role="status">No municipality hazard-map data has been saved yet.</div>
-        <?php endif; ?>
-    </section>
-    <div class="map-canvas">
-        <div id="municipal-hazard-map" role="region" aria-label="Malilipot municipality hazard map"></div>
-    </div>
+<div class="map-canvas">
+    <div id="municipal-hazard-map" role="region" aria-label="Malilipot municipality hazard map"></div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const MAPDATA = <?= $mapJson ?>;
-const map = L.map('municipal-hazard-map', {
-    center: [MAPDATA.lat, MAPDATA.lng],
-    zoom: MAPDATA.zoom,
-    scrollWheelZoom: false
-});
+ // Google Maps API key
+ const GOOGLE_MAPS_API_KEY = 'AIzaSyBELUPSX2pIIO-WCMu36lx3jbEkRssqYn0';
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap contributors'
-}).addTo(map);
-
-function popup(title, detail) {
-    const container = document.createElement('div');
-    const heading = document.createElement('strong');
-    heading.textContent = title;
-    container.appendChild(heading);
-    if (detail) {
-        const description = document.createElement('div');
-        description.textContent = detail;
-        container.appendChild(description);
-    }
-    return container;
-}
-
-function safeColor(value, fallback) {
-    return typeof value === 'string' && /^#[0-9a-f]{3,8}$/i.test(value) ? value : fallback;
-}
-
-const features = L.featureGroup();
-(MAPDATA.polygons || []).forEach(function (polygon) {
-    const color = safeColor(polygon.color, '#0072C6');
-    let layer = null;
-
-    if (polygon.ptype === 'circle' && polygon.center &&
-        Number.isFinite(Number(polygon.center.lat)) &&
-        Number.isFinite(Number(polygon.center.lng))) {
-        layer = L.circle([Number(polygon.center.lat), Number(polygon.center.lng)], {
-            radius: Number(polygon.radius) || 300,
-            color: color,
-            fillColor: color,
-            fillOpacity: 0.22
-        });
-    } else if (Array.isArray(polygon.points) && polygon.points.length) {
-        layer = polygon.type === 'line'
-            ? L.polyline(polygon.points, { color: color, weight: 5 })
-            : L.polygon(polygon.points, { color: color, fillColor: color, fillOpacity: 0.25 });
-    }
-
-    if (layer) {
-        layer.bindPopup(popup(polygon.name || 'Hazard zone', polygon.risk || ''));
-        layer.addTo(features);
-    }
-});
-
-(MAPDATA.points || []).forEach(function (point) {
-    if (!Number.isFinite(Number(point.lat)) || !Number.isFinite(Number(point.lng))) {
-        return;
-    }
-
-    L.circleMarker([Number(point.lat), Number(point.lng)], {
-        radius: 7,
-        color: '#fff',
-        weight: 2,
-        fillColor: safeColor(point.color, '#9013fe'),
-        fillOpacity: 1
-    }).bindPopup(popup(point.name || 'Hazard point', point.risk || '')).addTo(features);
-});
-
-features.addTo(map);
-if (features.getLayers().length) {
-    map.fitBounds(features.getBounds().pad(0.15), { maxZoom: 16 });
-}
+ // Load Google Maps API and initialize map
+ function initMap() {
+     const MAPDATA = <?= $mapJson ?>;
+     
+   // Malilipot, Albay center coordinates
+   const malilipotLat = MAPDATA.lat || 13.3597;
+   const malilipotLng = MAPDATA.lng || 123.7311;
+   const defaultZoom = MAPDATA.zoom || 8;
+   
+   // Create map centered on Malilipot, Albay
+   const map = new google.maps.Map(document.getElementById('municipal-hazard-map'), {
+       center: { lat: malilipotLat, lng: malilipotLng },
+       zoom: defaultZoom,
+       mapTypeId: google.maps.MapTypeId.ROADMAP,
+       disableDefaultUI: false,
+       zoomControl: true
+   });
+   
+   // Overlay hazard polygons
+   (MAPDATA.polygons || []).forEach(function (polygon) {
+       const color = polygon.color || '#0072C6';
+       
+       let path = [];
+       if (polygon.ptype === 'circle' && polygon.center) {
+           // Circle - display as polygon with coordinates around the center
+           const centerLat = Number(polygon.center.lat);
+           const centerLng = Number(polygon.center.lng);
+           const radius = Number(polygon.radius) || 300;
+           
+           // Convert radius to approximate degrees (1 degree ~ 111km at equator)
+           const radiusDeg = radius / 111000;
+           
+           const numPoints = 32;
+           for (let i = 0; i < numPoints; i++) {
+               const angle = (i / numPoints) * 2 * Math.PI;
+               const lat = centerLat + (radiusDeg * Math.cos(angle));
+               const lng = centerLng + (radiusDeg / Math.cos(centerLat * Math.PI / 180) * Math.sin(angle));
+               path.push({ lat: lat, lng: lng });
+           }
+           // Close the polygon
+           path.push(path[0]);
+       } else if (Array.isArray(polygon.points) && polygon.points.length) {
+           // Use the polygon points directly
+           path = polygon.points.map(function (p) {
+               return { lat: Number(p[0]), lng: Number(p[1]) };
+           });
+           // Close the polygon
+           if (path[0] && (path[0].lat !== path[path.length - 1].lat || path[0].lng !== path[path.length - 1].lng)) {
+               path.push(path[0]);
+           }
+       }
+       
+       if (path && path.length >= 3) {
+           const polygon = new google.maps.Polygon({
+               paths: path,
+               strokeColor: color,
+               strokeWeight: 5,
+               fillColor: color,
+               fillOpacity: 0.25,
+               map: map
+           });
+           
+           // Add click event with popup
+           const infoWindow = new google.maps.InfoWindow();
+           const popupContent = `
+               <strong>${polygon.name || 'Hazard zone'}</strong><br>
+               ${polygon.risk || ''}
+           `;
+           
+           polygon.addListener('click', function() {
+               infoWindow.setContent(popupContent);
+               infoWindow.open(map, polygon);
+           });
+       }
+   });
+   
+   // Overlay hazard points/markers
+   (MAPDATA.points || []).forEach(function (point) {
+       if (!Number.isFinite(Number(point.lat)) || !Number.isFinite(Number(point.lng))) {
+           return;
+       }
+       
+       const marker = new google.maps.Marker({
+           position: { lat: Number(point.lat), lng: Number(point.lng) },
+           map: map,
+           icon: {
+               path: google.maps.SymbolPath.CIRCLE,
+               fillColor: point.color || '#9013fe',
+               fillOpacity: 1,
+               strokeWeight: 2,
+               scale: 5
+           }
+       });
+       
+       // Add click event with popup
+       const infoWindow = new google.maps.InfoWindow();
+       const popupContent = `
+           <strong>${point.name || 'Hazard point'}</strong><br>
+           ${point.risk || ''}
+       `;
+       
+       marker.addListener('click', function() {
+           infoWindow.setContent(popupContent);
+           infoWindow.open(map, marker);
+       });
+   });
+   
+   // Fit bounds to include all hazards
+   const bounds = new google.maps.LatLngBounds();
+   bounds.extend({ lat: malilipotLat, lng: malilipotLng });
+   
+   (MAPDATA.polygons || []).forEach(function (polygon) {
+       if (Array.isArray(polygon.points) && polygon.points.length) {
+           polygon.points.forEach(function (p) {
+               bounds.extend({ lat: Number(p[0]), lng: Number(p[1]) });
+           });
+       }
+   });
+   
+   (MAPDATA.points || []).forEach(function (point) {
+       if (!Number.isFinite(Number(point.lat)) || !Number.isFinite(Number(point.lng))) {
+           return;
+       }
+       bounds.extend({ lat: Number(point.lat), lng: Number(point.lng) });
+   });
+   
+   map.fitBounds(bounds, { maxZoom: 16 });
+ }
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBELUPSX2pIIO-WCMu36lx3jbEkRssqYn0&callback=initMap">
 </script>
