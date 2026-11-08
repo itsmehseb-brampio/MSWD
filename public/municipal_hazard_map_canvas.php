@@ -61,6 +61,29 @@ $mapJson = json_encode(
  const malilipotBounds = [[13.253340, 123.686751], [13.341258, 123.765322]];
  map.fitBounds(malilipotBounds, { maxZoom: 16 });
  
+ // Add highlighted Malilipot boundary polygon (thick red outlined)
+ // This shows users the extent of Malilipot municipality
+ const malilipotBoundary = L.polygon([
+     [13.253340, 123.686751],
+     [13.341258, 123.686751],
+     [13.341258, 123.765322],
+     [13.253340, 123.765322],
+     [13.253340, 123.686751]
+ ], {
+     color: '#FF0000',        // Bright red outline
+     weight: 4,               // Thick line
+     fillColor: '#FF0000',    // Red fill
+     fillOpacity: 0.05,       // Very subtle fill
+     dashArray: '10, 10'      // Dashed pattern
+ }).addTo(map);
+ 
+ // Bring boundary to front so it's visible above other layers
+ map.eachLayer(function(layer) {
+     if (layer instanceof L.Polygon) {
+         layer.bringToFront();
+     }
+ });
+ 
  // Overlay hazard polygons with red dashed boundaries
  const hazards = L.featureGroup();
  
