@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\MunicipalHazardMap;
+use App\Support\MunicipalHazardMapData;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -50,29 +51,7 @@ class MalilipotHazardMapController extends Controller
 
     private function mapData(): array
     {
-        $map = MunicipalHazardMap::municipality();
-        if (!$map->exists) {
-            $map = null;
-        }
-        $polygons = $map?->hazard_polygons
-            ? json_decode($map->hazard_polygons, true, 512, JSON_THROW_ON_ERROR)
-            : [];
-        $points = $map?->hazard_points
-            ? json_decode($map->hazard_points, true, 512, JSON_THROW_ON_ERROR)
-            : [];
-
-        return [
-            'lat' => $map?->map_lat ?? 13.3597,
-            'lng' => $map?->map_lng ?? 123.7311,
-            'zoom' => $map?->map_zoom ?? 7,
-            'polygons' => $polygons,
-            'points' => $points,
-            'risk_level' => $map?->risk_level ?? 'Low',
-            'updated_at' => $map?->hazard_map_updated_at?->format('M d, Y h:i A') ?? 'No hazard map data yet',
-            'total_polygons' => count($polygons),
-            'total_points' => count($points),
-            'has_data' => count($polygons) > 0 || count($points) > 0,
-        ];
+        return MunicipalHazardMapData::load();
     }
 
     private function validatedMapData(Request $request): array

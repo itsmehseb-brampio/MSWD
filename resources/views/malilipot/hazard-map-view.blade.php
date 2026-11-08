@@ -3,7 +3,7 @@
 @section('title', 'Malilipot Hazard Map View')
 @section('headerTitle', 'Malilipot Municipality Hazard Map View')
 
-@section('head')
+@push('head')
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 .hm-row { display: grid; grid-template-columns: 330px 1fr; gap: 18px; align-items: start; }
@@ -70,13 +70,15 @@
 .risk-bar-fill.high { background: #d9534f; }
 .risk-bar-fill.critical { background: #7b1a1a; }
 </style>
-@endsection
+@endpush
 
 @section('content')
 
 @php
     $riskColors = ['Low' => '#5cb85c', 'Medium' => '#f0ad4e', 'High' => '#d9534f', 'Critical' => '#7b1a1a'];
     $risk = $mapData['risk_level'] ?? 'Low';
+    $riskPercentages = ['Low' => 20, 'Medium' => 40, 'High' => 70, 'Critical' => 100];
+    $riskPercentage = $riskPercentages[$risk] ?? 0;
     $hasData = $mapData['has_data'] ?? false;
     $totalPolygons = $mapData['total_polygons'] ?? 0;
     $totalPoints = $mapData['total_points'] ?? 0;
@@ -114,7 +116,7 @@
                     <span class="il-value">{{ number_format($totalPoints) }}</span>
                 </div>
                 <div class="risk-bar">
-                    <div class="risk-bar-fill {{ strtolower($risk) }}" style="width:{{ calculateRiskPercentage($risk) }}%;"></div>
+                    <div class="risk-bar-fill {{ strtolower($risk) }}" style="width:{{ $riskPercentage }}%;"></div>
                 </div>
             @else
                 <div class="info-line">
@@ -179,6 +181,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 function markerIcon(color) {
+    color = safeColor(color, '#9013fe');
     return L.divIcon({
         className: 'vm-marker',
         html: '<span style="display:block;width:22px;height:22px;border-radius:50%;background:' + color + ';border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.4);"></span>',
@@ -187,39 +190,59 @@ function markerIcon(color) {
     });
 }
 
+function safeColor(value, fallback) {
+    return typeof value === 'string' && /^#[0-9a-f]{3,8}$/i.test(value) ? value : fallback;
+}
+
+function popup(title, detail) {
+    const container = document.createElement('div');
+    const heading = document.createElement('strong');
+    heading.textContent = title;
+    container.appendChild(heading);
+    if (detail) {
+        const description = document.createElement('div');
+        description.textContent = detail;
+        container.appendChild(description);
+    }
+    return container;
+}
+
 let group = L.featureGroup();
 (MAPDATA.polygons || []).forEach(function (p) {
-    if (p.ptype === 'circle' && p.center) {
-        L.circle([p.center.lat, p.center.lng], {
-            radius: p.radius || 300,
-            color: p.color || '#0072C6',
+    const color = safeColor(p.color, '#0072C6');
+    let layer = null;
+    if (p.ptype === 'circle' && p.center &&
+        Number.isFinite(Number(p.center.lat)) &&
+        Number.isFinite(Number(p.center.lng))) {
+        layer = L.circle([Number(p.center.lat), Number(p.center.lng)], {
+            radius: Number(p.radius) || 300,
+            color: color,
             weight: 2,
-            fillColor: p.color || '#0072C6',
+            fillColor: color,
             fillOpacity: 0.22
-        }).addTo(group);
-    } else if (p.points && p.points.length) {
-        L.polygon(p.points, {
-            color: p.color || '#0072C6',
-            weight: 3,
-            fillColor: p.color || '#0072C6',
-            fillOpacity: 0.25
-        }).addTo(group);
+        });
+    } else if (Array.isArray(p.points) && p.points.length) {
+        layer = p.type === 'line'
+            ? L.polyline(p.points, { color: color, weight: 5 })
+            : L.polygon(p.points, { color: color, weight: 3, fillColor: color, fillOpacity: 0.25 });
+    }
+    if (layer) {
+        layer.bindPopup(popup(p.name || 'Hazard zone', p.risk || p.barangay_name || ''));
+        layer.addTo(group);
     }
 });
 (MAPDATA.points || []).forEach(function (pt) {
-    L.marker([pt.lat, pt.lng], { icon: markerIcon(pt.color || '#9013fe') })
+    if (!Number.isFinite(Number(pt.lat)) || !Number.isFinite(Number(pt.lng))) {
+        return;
+    }
+    L.marker([Number(pt.lat), Number(pt.lng)], { icon: markerIcon(pt.color) })
         .addTo(group)
-        .bindPopup('<b>' + (pt.name || 'Point Marker') + '</b><br><small>' + (pt.risk || '') + '</small>');
+        .bindPopup(popup(pt.name || 'Point Marker', pt.risk || pt.barangay_name || ''));
 });
 
 group.addTo(map);
 if (group.getLayers().length) {
     map.fitBounds(group.getBounds().pad(0.15), { maxZoom: 16 });
-}
-
-function calculateRiskPercentage(riskLevel) {
-    const percentages = { Low: 20, Medium: 40, High: 70, Critical: 100 };
-    return (percentages[riskLevel] || 0);
 }
 </script>
 @endpush

@@ -3,7 +3,7 @@
 @section('title', 'Malilipot Hazard Map')
 @section('headerTitle', 'Malilipot Municipality Hazard Map')
 
-@section('head')
+@push('head')
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 .hm-toolbar {
@@ -104,7 +104,7 @@
 }
 .no-data-message.show { display: block; }
 </style>
-@endsection
+@endpush
 
 @section('content')
 
