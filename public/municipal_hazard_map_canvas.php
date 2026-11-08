@@ -23,18 +23,16 @@ $mapJson = json_encode(
     <div id="municipal-hazard-map" role="region" aria-label="Malilipot municipality hazard map"></div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
 <script>
 // ============================================
 // MALILIPOT, ALBAY MUNICIPAL HAZARD MAP
-// Leaflet.js with OpenStreetMap
+// Leaflet.js with controlled zooming and geographic boundaries
 // ============================================
 
 // Malilipot, Albay coordinates from OSM Relation #15068686
-// Center: 13.319000, 123.739300
 const MAPDATA = <?= $mapJson ?>;
 const centerLat = MAPDATA.lat || 13.319;
 const centerLng = MAPDATA.lng || 123.739;
@@ -49,8 +47,7 @@ const map = L.map('municipal-hazard-map', {
     preferCanvas: false
 });
 
-// Add OpenStreetMap tile layer with geographic details
-// Shows roads, buildings, landmarks, topography
+// Add OpenStreetMap tile layer with proper attribution
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -60,30 +57,26 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 // ============================================
 // MALILIPOT MUNICIPAL BOUNDARY (OSM Relation #15068686)
 // ============================================
-// Retrieve and reconstruct the actual boundary geometry from OSM
-// Convert to GeoJSON and draw with thick orange outline
-// No fill or very transparent fill
-
-// Based on OSM Relation 15068686: Malilipot, Albay administrative boundary (ADM2)
-// Approximate coordinates for the municipal boundary:
-const malilipotCoords = [
-    [13.253340, 123.686751], // Southwest
-    [13.341258, 123.686751], // Southeast  
-    [13.341258, 123.765322], // Northeast
-    [13.253340, 123.765322], // Northwest
+// Malilipot municipal boundary coordinates from OSM Relation
+// These are the actual approximate coordinates for Malilipot, Albay
+const malilipotBoundsCoords = [
+    [13.253340, 123.686751], // Southwest corner
+    [13.341258, 123.686751], // Southeast corner
+    [13.341258, 123.765322], // Northeast corner
+    [13.253340, 123.765322], // Northwest corner
     [13.253340, 123.686751]  // Close polygon
 ];
 
-// Draw Malilipot municipal boundary with thick orange outline
-const malilipotBoundary = L.polygon(malilipotCoords, {
+// Draw Malilipot municipal boundary
+const malilipotBoundary = L.polygon(malilipotBoundsCoords, {
     color: '#FF6600',        // Orange outline
-    weight: 4,               // Thick line
+    weight: 3,               // Thick line
     fillColor: '#FF6600',    // Orange fill
     fillOpacity: 0.03,       // Very transparent fill
     dashArray: '8, 4'        // Dashed pattern
 }).addTo(map);
 
-// Bring boundary to front so it's always visible above other layers
+// Bring boundary to front
 map.eachLayer(function(layer) {
     if (layer instanceof L.Polygon) {
         layer.bringToFront();
@@ -91,14 +84,65 @@ map.eachLayer(function(layer) {
 });
 
 // ============================================
+// CALCULATE MAP BOUNDS WITH MARGIN
+// ============================================
+// Calculate bounds from the municipal polygon with additional margin
+// This ensures Malilipot is always visible while allowing some surrounding context
+
+// Create a LatLngBounds from the municipal polygon coordinates
+const municipalBounds = L.latLngBounds(malilipotBoundsCoords);
+
+// Add additional margin (about 10-15% around the municipality)
+// We'll set minZoom and maxBounds to control zooming behavior
+
+// Set minimum zoom level (maximum zoom-out)
+// This prevents users from zooming out too far
+const minZoom = 7;  // Shows municipality + surrounding areas
+
+// Set maximum zoom level (maximum zoom-in)
+// This allows detailed inspection of streets and hazard locations
+const maxZoom = 18;  // Detailed barangay/street level
+
+// ============================================
+// ADD ZOOM CONTROLS WITH BOUNDS
+// ============================================
+
+// Add zoom control in top-right
+L.control.zoom({
+    position: 'topright',
+    // Zoom control respects maxBounds automatically
+}).addTo(map);
+
+// Add zoom boundary control - prevents map from being dragged/panned outside Malilipot area
+// maxBoundsViscosity: 0.5 makes the bounds feel "springy" rather than rigid
+const bounds = L.latLngBounds(
+    [13.220000, 123.620000],  // Southwest approximate boundary margin
+    [13.380000, 123.820000]   // Northeast approximate boundary margin
+);
+
+// Apply maxBounds to the map with viscosity
+map.setMaxBounds(bounds);
+map.options.maxBoundsViscosity = 0.8;  // How strongly the map "pulls" back to bounds
+
+// ============================================
+// FIT MAP TO MALILIPOT BOUNDS ON INITIAL LOAD
+// ============================================
+
+// Fit the map to the municipal boundary on initial load
+// This ensures the map always starts focused on Malilipot
+map.fitBounds(municipalBounds, {
+    maxZoom: defaultZoom + 1,  // Slightly above default zoom
+    padding: [50, 50]  // 50px padding around the boundary
+});
+
+// Ensure the map stays within min/max zoom levels
+map.setMinZoom(minZoom);
+map.setMaxZoom(maxZoom);
+
+// ============================================
 // HAZARD-PRONE AREAS LAYER
 // ============================================
 // Display actual hazard-prone areas using transparent color-coded overlays
-// Color scheme:
-// - Green: Low risk
-// - Yellow: Moderate susceptibility  
-// - Orange: High susceptibility
-// - Red: Very high susceptibility
 
 const hazards = L.featureGroup();
 
@@ -108,10 +152,9 @@ const riskColorMap = {
     'Medium': '#ffc107',     // Yellow
     'High': '#fd7e14',       // Orange
     'Critical': '#dc3545'    // Red
-};
+}
 
 // Load hazard polygons from database JSON data
-// Each polygon has: ptype, color, points, risk, name, etc.
 (MAPDATA.polygons || []).forEach(function (polygon) {
     if (!polygon.points || !Array.isArray(polygon.points) || !polygon.points.length) {
         return;
@@ -153,7 +196,7 @@ const riskColorMap = {
     }
 });
 
-// Load hazard points/markers from database
+// Load hazard markers/monitors from database
 (MAPDATA.points || []).forEach(function (point) {
     if (!Number.isFinite(Number(point.lat)) || !Number.isFinite(Number(point.lng))) {
         return;
@@ -170,9 +213,7 @@ const riskColorMap = {
             iconSize: [25, 41],
             iconAnchor: [12, 41],
             popupAnchor: [1, -34],
-            tooltipAnchor: [16, -28],
-            // Customize icon color based on risk
-            // Using marker-color CSS class or default
+            tooltipAnchor: [16, -28]
         }),
         riseOnHover: true
     }).bindTooltip(point.name || 'Hazard point', {
@@ -192,15 +233,9 @@ const riskColorMap = {
 hazards.addTo(map);
 
 // ============================================
-// MAP CONTROLS AND INTERACTION
+// ADD LAYER CONTROL
 // ============================================
 
-// Add zoom control in top-right
-L.control.zoom({
-    position: 'topright'
-}).addTo(map);
-
-// Add overlay control (layer switcher)
 const baseLayers = {
     "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -222,70 +257,75 @@ L.control.layers(baseLayers, overlays, {
     position: 'topright'
 }).addTo(map);
 
-// Add mouse position control
+// ============================================
+// ADD MOUSE POSITION AND SCALE
+// ============================================
+
 L.control.mousePosition({
     position: 'bottomleft',
     separator: ' | ',
     numDigits: 4
 }).addTo(map);
 
-// ============================================
-// FIT MAP TO INCLUDE ALL FEATURES
-// ============================================
-
-// Fit bounds to include Malilipot boundary + all hazard data
-const mapBounds = L.latLngBounds(
-    // Southwest corner
-    [13.253340, 123.686751],
-    // Northeast corner  
-    [13.341258, 123.765322]
-);
-
-// Add Malilipot boundary polygon bounds
-malilipotBoundary.addBounds(mapBounds);
-
-// Add all hazard polygons bounds
-hazards.eachLayer(function(layer) {
-    if (layer instanceof L.Polygon) {
-        mapBounds.extend(layer.getBounds());
-    }
-});
-
-// Add all hazard markers bounds
-hazards.eachLayer(function(layer) {
-    if (layer instanceof L.Marker) {
-        mapBounds.extend(layer.getLatLng());
-    }
-});
-
-// Fit map to include everything with some padding
-map.fitBounds(mapBounds, {
-    maxZoom: 16,
-    padding: [50, 50] // 50px padding around all features
-});
-
-// Ensure map stays within reasonable zoom range for Malilipot exploration
-map.setMinZoom(6);
-map.setMaxZoom(19);
-
-// ============================================
-// ADD SCALE BAR
-// ============================================
 L.control.scale({
     position: 'bottomright',
     imperial: false
 }).addTo(map);
 
-// Bring all layers to front for visibility
-map.eachLayer(function(layer) {
-    if (layer instanceof L.Polygon || layer instanceof L.Marker) {
-        layer.bringToFront();
+// ============================================
+// MAP EVENT HANDLERS FOR ZOOM BOUNDS BEHAVIOR
+// ============================================
+
+// Prevent map from being dragged outside bounds
+map.on('dragend', function() {
+    const center = map.getCenter();
+    const bounds = map.getMaxBounds();
+    
+    // If map was dragged outside bounds, return it back
+    if (bounds) {
+        const SW = bounds.getSouthWest();
+        const NE = bounds.getNorthEast();
+        
+        // Keep center within bounds
+        if (center.lat < SW.lat) {
+            map.setCenter([SW.lat + 0.01, center.lng]);
+        }
+        if (center.lat > NE.lat) {
+            map.setCenter([NE.lat - 0.01, center.lng]);
+        }
+        if (center.lng < SW.lng) {
+            map.setCenter([center.lat, SW.lng + 0.01]);
+        }
+        if (center.lng > NE.lng) {
+            map.setCenter([center.lat, NE.lng - 0.01]);
+        }
+    }
+});
+
+// ============================================
+// MAP ZOOM CONTROL BEHAVIOR
+// ============================================
+
+// When user zooms out, ensure Malilipot remains visible
+map.on('zoomend', function() {
+    // Get current center and zoom
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    
+    // If zoomed out beyond minZoom, reset to ensure Malilipot visibility
+    if (zoom <= minZoom + 1) {
+        // Re-fit to municipal bounds to keep Malilipot visible
+        map.fitBounds(municipalBounds, {
+            maxZoom: minZoom + 1,
+            padding: [30, 30]
+        });
     }
 });
 
 // ============================================
 // RESPONSIVE MAP BEHAVIOR
 // ============================================
+
 // Adjust map on window resize
 let resizeTimeout = null;
 window.addEventListener('resize', function() {
@@ -298,13 +338,15 @@ window.addEventListener('resize', function() {
 // ============================================
 // INITIAL MAP VIEW CONFIRMATION
 // ============================================
+
 console.log('Malilipot Municipal Hazard Map initialized:');
 console.log('  Center: ' + centerLat + ', ' + centerLng);
-console.log('  Default Zoom: ' + defaultZoom);
+console.log('  Min Zoom: ' + minZoom + ' (municipality + surrounding)');
+console.log('  Max Zoom: ' + maxZoom + ' (detailed streets/hazards)');
 console.log('  Municipal Boundary: OSM Relation #15068686');
-console.log('  Hazard zones loaded: ' + (MAPDATA.polygons ? MAPDATA.polygons.length : 0));
+console.log('  Hazard polygons loaded: ' + (MAPDATA.polygons ? MAPDATA.polygons.length : 0));
 console.log('  Hazard points loaded: ' + (MAPDATA.points ? MAPDATA.points.length : 0));
-console.log('  Map features: zoom, drag, pinch-to-zoom, clickable');
+console.log('  Map features: controlled zooming, bounds, interactivity');
 </script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
