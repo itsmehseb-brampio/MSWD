@@ -33,7 +33,7 @@ class HazardMapController extends Controller
             ? json_decode($map->hazard_points, true, 512, JSON_THROW_ON_ERROR)
             : [];
 
-        return view('admin.malilipot-hazard-map', [
+        return view('admin.hazard-map', [
             'mapData' => [
                 'lat' => $map?->map_lat ?? 13.3597,
                 'lng' => $map?->map_lng ?? 123.7311,

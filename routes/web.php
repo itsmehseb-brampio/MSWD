@@ -130,6 +130,8 @@ Route::prefix('barangay')->group(function () {
         Route::get('/overview', [BarangayOverviewController::class, 'index'])->name('barangay.overview');
         Route::get('/info', [BarangayInfoController::class, 'index'])->name('barangay.info');
         Route::post('/info', [BarangayInfoController::class, 'update'])->name('barangay.info.update');
+
+        // Legacy hazard-map URLs redirect to the municipality-wide map.
         Route::get('/hazard-map', [BarangayHazardMapController::class, 'edit'])->name('barangay.hazard_map');
         Route::post('/hazard-map', [BarangayHazardMapController::class, 'update'])->name('barangay.hazard_map.update');
         Route::get('/hazard-map/view', [BarangayHazardMapController::class, 'view'])->name('barangay.hazard_map_view');

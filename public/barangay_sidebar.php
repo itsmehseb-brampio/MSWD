@@ -60,8 +60,7 @@
                 <i class="fas fa-map-marked-alt"></i> <span>Hazard Map</span>
             </a>
             <ul class="submenu">
-                <li><a href="barangay_hazard_map.php" class="sidebar-btn <?php echo $current_page === 'barangay_hazard_map.php' ? 'active' : ''; ?>"><i class="fas fa-edit"></i> <span>Edit Hazard Map</span></a></li>
-                <li><a href="barangay_hazard_map_view.php" class="sidebar-btn <?php echo $current_page === 'barangay_hazard_map_view.php' ? 'active' : ''; ?>"><i class="fas fa-eye"></i> <span>View Hazard Map</span></a></li>
+               <li><a href="barangay_hazard_map_view.php" class="sidebar-btn <?php echo $current_page === 'barangay_hazard_map_view.php' ? 'active' : ''; ?>"><i class="fas fa-eye"></i> <span>View Hazard Map</span></a></li>
             </ul>
         </li>
 
