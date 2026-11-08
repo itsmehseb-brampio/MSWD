@@ -10,7 +10,7 @@ require_once __DIR__ . '/municipal_hazard_map_data.php';
 
 $current_page = 'admin_hazard_map.php';
 $mapData = loadMunicipalHazardMapData($conn);
-$barangayStats = $conn->query(
+$barangayResult = $conn->query(
     "SELECT COUNT(DISTINCT barangays.barangay_id) AS total_barangays,
             COUNT(DISTINCT CASE
                 WHEN barangay_details.risk_level IN ('High', 'Critical') THEN barangays.barangay_id
@@ -18,10 +18,10 @@ $barangayStats = $conn->query(
      FROM barangays
      LEFT JOIN barangay_details ON barangay_details.barangay_id = barangays.barangay_id"
 );
-if (!$barangayStats) {
+if (!$barangayResult) {
     throw new RuntimeException('Unable to load barangay hazard summary: ' . $conn->error);
 }
-$barangayStats = $barangayStats->fetch_assoc();
+$barangayStats = $barangayResult->fetch_assoc();
 $adminName = $_SESSION['admin_username'] ?? $_SESSION['admin_name'] ?? 'Administrator';
 ?>
 
@@ -42,40 +42,40 @@ $adminName = $_SESSION['admin_username'] ?? $_SESSION['admin_name'] ?? 'Administ
         .sidebar { position: fixed; inset: 0 auto 0 0; z-index: 1100; width: 260px; overflow-y: auto; background: linear-gradient(180deg, #0A6CFF, #0056C7 55%, #003D8F); color: #fff; box-shadow: 4px 0 20px rgba(0, 60, 150, .35); transition: transform .35s; }
         .sidebar.hide { transform: translateX(-100%); }
         .sidebar-header { position: relative; padding: 24px 18px 18px; text-align: center; background: rgba(0, 0, 0, .12); border-bottom: 1px solid rgba(255, 255, 255, .15); }
-        .sidebar-header .logo-ring { width: 72px; height: 72px; margin: 0 auto 10px; padding: 4px; border-radius: 50%; background: rgba(255, 255, 255, .25); }
+        .sidebar-header .logo-ring { width: 72px; height: 72px; margin: 0 auto 10x; padding: 4x; border-radius: 50%; background: rgba(255, 255, 255, .25); }
         .sidebar-header .logo-ring img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-        .sidebar-header h3, .sidebar-header p { margin: 6px 0; }
-        .sidebar .menu { margin: 0; padding: 14px 10px; list-style: none; }
-        .sidebar .menu li { margin: 4px 0; }
-        .sidebar .sidebar-btn { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 8px; color: #fff; text-decoration: none; }
+        .sidebar-header h3, .sidebar-header p { margin: 6x 0; }
+        .sidebar .menu { margin: 0; padding: 14x 10x; list-style: none; }
+        .sidebar .menu li { margin: 4x 0; }
+        .sidebar .sidebar-btn { display: flex; align-items: center; gap: 12x; padding: 12x 14x; border-radius: 8x; color: #fff; text-decoration: none; }
         .sidebar .sidebar-btn:hover, .sidebar .sidebar-btn.active { background: rgba(255, 255, 255, .18); }
-        .sidebar .sidebar-btn > i { width: 20px; text-align: center; }
-        .sidebar .sidebar-footer { padding: 14px 20px; border-top: 1px solid rgba(255, 255, 255, .15); }
+        .sidebar .sidebar-btn > i { width: 20x; text-align: center; }
+        .sidebar .sidebar-footer { padding: 14x 20x; border-top: 1x solid rgba(255, 255, 255, .15); }
         .sidebar .close-btn { display: none; }
-        .sidebar-edge { display: none; position: fixed; top: 14px; left: 12px; align-items: center; justify-content: center; width: 42px; height: 42px; border: 0; border-radius: 8px; background: #005999; color: #fff; cursor: pointer; }
-        .header { position: relative; z-index: 10; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 30px; background: linear-gradient(90deg, #0072C6, #005999); color: #fff; box-shadow: 0 2px 10px rgba(0, 0, 0, .1); }
+        .sidebar-edge { display: none; position: fixed; top: 14x; left: 12x; align-items: center; justify-content: center; width: 42x; height: 42x; border: 0; border-radius: 8x; background: #005999; color: #fff; cursor: pointer; }
+        .header { position: relative; z-index: 10; display: flex; justify-content: space-between; align-items: center; gap: 16x; padding: 16x 30x; background: linear-gradient(90deg, #0072C6, #005999); color: #fff; box-shadow: 0 2x 10x rgba(0, 0, 0, .1); }
         .header h1 { margin: 0; font-size: 1.4rem; }
-        .admin-profile { display: flex; align-items: center; gap: 12px; padding: 8px 15px; border-radius: 25px; background: rgba(255, 255, 255, .1); cursor: pointer; }
+        .admin-profile { display: flex; align-items: center; gap: 12x; padding: 8x 15x; border-radius: 25x; background: rgba(255, 255, 255, .1); cursor: pointer; }
         .admin-profile:hover { background: rgba(255, 255, 255, .2); }
-        .admin-profile img { width: 40px; height: 40px; border: 2px solid #fff; border-radius: 50%; object-fit: cover; }
-        .dropdown { display: none; position: absolute; top: 70px; right: 30px; z-index: 1002; min-width: 150px; overflow: hidden; border-radius: 10px; background: #fff; box-shadow: 0 5px 20px rgba(0, 0, 0, .15); }
+        .admin-profile img { width: 40x; height: 40x; border: 2x solid #fff; border-radius: 50x; object-fit: cover; }
+        .dropdown { display: none; position: absolute; top: 70x; right: 30x; z-index: 1002; min-width: 150x; overflow: hidden; border-radius: 10x; background: #fff; box-shadow: 0 5x 20x rgba(0, 0, 0, .15); }
         .dropdown.show { display: block; }
-        .dropdown a { display: flex; align-items: center; gap: 10px; padding: 12px 20px; color: #333; text-decoration: none; }
+        .dropdown a { display: flex; align-items: center; gap: 10x; padding: 12x 20x; color: #333; text-decoration: none; }
         .dropdown a:hover { background: #f5f5f5; color: #0072C6; }
-        .page-content { max-width: 1500px; margin: 0 auto; padding: 24px; }
-        .admin-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
-        .summary-card { padding: 18px 20px; background: #fff; border: 1px solid #BFDBFE; border-radius: 12px; }
-        .summary-card span { display: block; color: #475569; font-size: .88rem; }
-        .summary-card strong { display: block; margin-top: 6px; color: #1E3A8A; font-size: 1.5rem; }
-        @media (max-width: 600px) {
-            .header { align-items: flex-start; flex-direction: column; padding: 16px; }
-            .header h1 { padding-left: 48px; }
-            .page-content { padding: 14px; }
+        .page-content { max-width: 1500x; margin: 0 auto; padding: 24x; }
+        .admin-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14x; margin-bottom: 18x; }
+        .summary-card { padding: 18x 20x; background: #fff; border: 1x solid #BFDBFE; border-radius: 12x; }
+        .summary-card span { display: block; color: #475569; font-size: .88x; }
+        .summary-card strong { display: block; margin-top: 6x; color: #1E3A8A; font-size: 1.5x; }
+        @media (max-width: 600x) {
+            .header { align-items: flex-start; flex-direction: column; padding: 16x; }
+            .header h1 { padding-left: 48x; }
+            .page-content { padding: 14x; }
             .admin-summary { grid-template-columns: 1fr; }
         }
-        @media (max-width: 900px) {
+        @media (max-width: 900x) {
             .main-content { margin-left: 0 !important; }
-            .sidebar .close-btn { display: block; position: absolute; top: 12px; right: 14px; cursor: pointer; }
+            .sidebar .close-btn { display: block; position: absolute; top: 12x; right: 14x; cursor: pointer; }
         }
     </style>
 </head>

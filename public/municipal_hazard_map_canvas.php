@@ -10,7 +10,7 @@ $mapJson = json_encode(
 .map-summary { padding: 20px; }
 .map-summary h2 { color: #1E3A8A; font-size: 1.05rem; margin: 0 0 14px; }
 .map-summary p { color: #475569; font-size: .88rem; line-height: 1.5; margin: 0 0 14px; }
-.map-stat { display: flex; justify-content: space-between; gap: 10x; padding: 10px 0; border-top: 1px solid #E9EFF5; color: #475569; font-size: .88rem; }
+.map-stat { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid #E9EFF5; color: #475569; font-size: .88rem; }
 .map-stat strong { color: #1E3A8A; text-align: right; }
 .risk-badge { display: inline-block; border-radius: 14px; background: #1E40AF; color: #fff; padding: 4px 11px; font-size: .78rem; }
 .map-canvas { min-height: 500px; overflow: hidden; }
@@ -23,138 +23,148 @@ $mapJson = json_encode(
     <div id="municipal-hazard-map" role="region" aria-label="Malilipot municipality hazard map"></div>
 </div>
 
-<script>
- // Google Maps API key
- const GOOGLE_MAPS_API_KEY = 'AIzaSyBELUPSX2pIIO-WCMu36lx3jbEkRssqYn0';
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
- // Load Google Maps API and initialize map
- function initMap() {
-     const MAPDATA = <?= $mapJson ?>;
+<script>
+ // Malilipot, Albay real coordinates
+ // Center: 13.319000, 123.739300
+ // Bounds: North 13.341258, South 13.253340, East 123.765322, West 123.686751
+ const MAPDATA = <?= $mapJson ?>;
+ const centerLat = MAPDATA.lat || 13.319;
+ const centerLng = MAPDATA.lng || 123.7393;
+ const defaultZoom = MAPDATA.zoom || 8;
+ 
+ // Create map centered on Malilipot, Albay using OpenStreetMap
+ const map = L.map('municipal-hazard-map', {
+     center: [centerLat, centerLng],
+     zoom: defaultZoom,
+     zoomControl: true,
+     scrollWheelZoom: true,
+     preferCanvas: false
+ });
+ 
+ // Add OpenStreetMap tile layer
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+     maxZoom: 19,
+     attribution: '&copy; OpenStreetMap contributors',
+     detectRetina: true
+ }).addTo(map);
+ 
+ // Fit map to Malilipot municipality bounds
+ // North: 13.341258, South: 13.253340, East: 123.765322, West: 123.686751
+ const malilipotBounds = [[13.253340, 123.686751], [13.341258, 123.765322]];
+ map.fitBounds(malilipotBounds, { maxZoom: 16 });
+ 
+ // Overlay hazard polygons with red dashed boundaries
+ const hazards = L.featureGroup();
+ 
+ (MAPDATA.polygons || []).forEach(function (polygon) {
+     const color = polygon.color || '#DC3545'; // Red for hazard zones
      
-   // Malilipot, Albay center coordinates
-   const malilipotLat = MAPDATA.lat || 13.3597;
-   const malilipotLng = MAPDATA.lng || 123.7311;
-   const defaultZoom = MAPDATA.zoom || 8;
-   
-   // Create map centered on Malilipot, Albay
-   const map = new google.maps.Map(document.getElementById('municipal-hazard-map'), {
-       center: { lat: malilipotLat, lng: malilipotLng },
-       zoom: defaultZoom,
-       mapTypeId: google.maps.MapTypeId.ROADMAP,
-       disableDefaultUI: false,
-       zoomControl: true
-   });
-   
-   // Overlay hazard polygons
-   (MAPDATA.polygons || []).forEach(function (polygon) {
-       const color = polygon.color || '#0072C6';
-       
-       let path = [];
-       if (polygon.ptype === 'circle' && polygon.center) {
-           // Circle - display as polygon with coordinates around the center
-           const centerLat = Number(polygon.center.lat);
-           const centerLng = Number(polygon.center.lng);
-           const radius = Number(polygon.radius) || 300;
-           
-           // Convert radius to approximate degrees (1 degree ~ 111km at equator)
-           const radiusDeg = radius / 111000;
-           
-           const numPoints = 32;
-           for (let i = 0; i < numPoints; i++) {
-               const angle = (i / numPoints) * 2 * Math.PI;
-               const lat = centerLat + (radiusDeg * Math.cos(angle));
-               const lng = centerLng + (radiusDeg / Math.cos(centerLat * Math.PI / 180) * Math.sin(angle));
-               path.push({ lat: lat, lng: lng });
-           }
-           // Close the polygon
-           path.push(path[0]);
-       } else if (Array.isArray(polygon.points) && polygon.points.length) {
-           // Use the polygon points directly
-           path = polygon.points.map(function (p) {
-               return { lat: Number(p[0]), lng: Number(p[1]) };
-           });
-           // Close the polygon
-           if (path[0] && (path[0].lat !== path[path.length - 1].lat || path[0].lng !== path[path.length - 1].lng)) {
-               path.push(path[0]);
-           }
-       }
-       
-       if (path && path.length >= 3) {
-           const polygon = new google.maps.Polygon({
-               paths: path,
-               strokeColor: color,
-               strokeWeight: 5,
-               fillColor: color,
-               fillOpacity: 0.25,
-               map: map
-           });
-           
-           // Add click event with popup
-           const infoWindow = new google.maps.InfoWindow();
-           const popupContent = `
-               <strong>${polygon.name || 'Hazard zone'}</strong><br>
-               ${polygon.risk || ''}
-           `;
-           
-           polygon.addListener('click', function() {
-               infoWindow.setContent(popupContent);
-               infoWindow.open(map, polygon);
-           });
-       }
-   });
-   
-   // Overlay hazard points/markers
-   (MAPDATA.points || []).forEach(function (point) {
-       if (!Number.isFinite(Number(point.lat)) || !Number.isFinite(Number(point.lng))) {
-           return;
-       }
-       
-       const marker = new google.maps.Marker({
-           position: { lat: Number(point.lat), lng: Number(point.lng) },
-           map: map,
-           icon: {
-               path: google.maps.SymbolPath.CIRCLE,
-               fillColor: point.color || '#9013fe',
-               fillOpacity: 1,
-               strokeWeight: 2,
-               scale: 5
-           }
-       });
-       
-       // Add click event with popup
-       const infoWindow = new google.maps.InfoWindow();
-       const popupContent = `
-           <strong>${point.name || 'Hazard point'}</strong><br>
-           ${point.risk || ''}
-       `;
-       
-       marker.addListener('click', function() {
-           infoWindow.setContent(popupContent);
-           infoWindow.open(map, marker);
-       });
-   });
-   
-   // Fit bounds to include all hazards
-   const bounds = new google.maps.LatLngBounds();
-   bounds.extend({ lat: malilipotLat, lng: malilipotLng });
-   
-   (MAPDATA.polygons || []).forEach(function (polygon) {
-       if (Array.isArray(polygon.points) && polygon.points.length) {
-           polygon.points.forEach(function (p) {
-               bounds.extend({ lat: Number(p[0]), lng: Number(p[1]) });
-           });
-       }
-   });
-   
-   (MAPDATA.points || []).forEach(function (point) {
-       if (!Number.isFinite(Number(point.lat)) || !Number.isFinite(Number(point.lng))) {
-           return;
-       }
-       bounds.extend({ lat: Number(point.lat), lng: Number(point.lng) });
-   });
-   
-   map.fitBounds(bounds, { maxZoom: 16 });
- }
+     let path = [];
+     if (polygon.ptype === 'circle' && polygon.center) {
+         // Circle - display as polygon with coordinates around the center
+         const centerLat = Number(polygon.center.lat);
+         const centerLng = Number(polygon.center.lng);
+         const radius = Number(polygon.radius) || 300;
+         
+         // Convert radius to approximate degrees (1 degree ~ 111km at equator)
+         const radiusDeg = radius / 111000;
+         
+         const numPoints = 32;
+         for (let i = 0; i < numPoints; i++) {
+             const angle = (i / numPoints) * 2 * Math.PI;
+             const lat = centerLat + (radiusDeg * Math.cos(angle));
+             const lng = centerLng + (radiusDeg / Math.cos(centerLat * Math.PI / 180) * Math.sin(angle));
+             path.push([lat, lng]);
+         }
+         // Close the polygon
+         path.push(path[0]);
+     } else if (Array.isArray(polygon.points) && polygon.points.length) {
+         // Use the polygon points directly
+         path = polygon.points.map(function (p) {
+             return [Number(p[0]), Number(p[1])];
+         });
+         // Close the polygon if not already closed
+         if (path[0] && (path[0][0] !== path[path.length - 1][0] || path[0][1] !== path[path.length - 1][1])) {
+             path.push(path[0]);
+         }
+     }
+     
+     if (path && path.length >= 3) {
+         const hazardPolygon = L.polygon(path, {
+             color: color,
+             weight: 3,
+             fillColor: color,
+             fillOpacity: 0.15,
+             dashArray: '5, 5', // Dashed boundary
+             className: 'hazard-zone'
+         }).bindPopup(`
+             <strong>${polygon.name || 'Hazard zone'}</strong><br>
+             ${polygon.risk || ''}
+         `);
+         
+         hazardPolygon.addTo(hazards);
+     }
+ });
+ 
+ // Overlay hazard markers with warning icons
+ (MAPDATA.points || []).forEach(function (point) {
+     if (!Number.isFinite(Number(point.lat)) || !Number.isFinite(Number(point.lng))) {
+         return;
+     }
+     
+     const marker = L.marker([Number(point.lat), Number(point.lng)], {
+         icon: L.icon({
+             iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+             iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+             shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+             iconSize: [25, 41],
+             iconAnchor: [12, 41],
+             popupAnchor: [1, -34],
+             tooltipAnchor: [16, -28]
+         }),
+         riseOnHover: true
+     }).bindTooltip(point.name || 'Hazard point', {
+         permanent: false,
+         direction: 'auto',
+         sticky: false
+     }).addTo(hazards);
+     
+     // Add click popup
+     const popupContent = `
+         <strong>${point.name || 'Hazard point'}</strong><br>
+         ${point.risk || ''}
+     `;
+     marker.bindPopup(popupContent);
+ });
+ 
+ hazards.addTo(map);
+ 
+ // Add zoom control in top-right
+ L.control.zoom({
+     position: 'topright'
+ }).addTo(map);
+ 
+ // Add layer control
+ const baseLayers = {
+     "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+         maxZoom: 19,
+         attribution: '&copy; OpenStreetMap contributors'
+     })
+ };
+ const overlays = {
+     "Hazard Zones": hazards,
+     "Hazard Points": L.marker.clusterGroup({spiderfyOnMaxZoom: true, showCoverageOnHover: true})
+ };
+ L.control.layers(baseLayers, overlays, { collapsed: true }).addTo(map);
+ 
+ // Add mouse position control
+ L.control.mousePosition({
+     position: 'bottomleft',
+     separator: ' | '
+ }).addTo(map);
 </script>
-<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBELUPSX2pIIO-WCMu36lx3jbEkRssqYn0&callback=initMap">
-</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
