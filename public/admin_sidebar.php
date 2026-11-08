@@ -79,12 +79,7 @@ if (isset($conn) && !empty($_SESSION['admin_id'])) {
             <ul class="submenu">
                 <li><a href="admin_hazard_map.php" class="sidebar-btn"><i class="fas fa-map"></i> <span>Map View</span></a></li>
                 <li><a href="admin_prone_areas.php" class="sidebar-btn"><i class="fas fa-warn"></i> <span>Prone Areas</span></a></li>
-                <li><a href="admin_evacuation_centers.php" class="sidebar-btn"><i class="fas fa-bed"></i> <span>Evacuation Centers</span></a></li>
-                <li><a href="admin_schools.php" class="sidebar-btn"><i class="fas fa-school"></i> <span>Schools</span></a></li>
-                <li><a href="admin_fire_stations.php" class="sidebar-btn"><i class="fas fa-fire"></i> <span>Fire Stations</span></a></li>
-                <li><a href="admin_police_stations.php" class="sidebar-btn"><i class="fas fa-shield-alt"></i> <span>Police Stations</span></a></li>
-                <li><a href="admin_municipal_hall.php" class="sidebar-btn"><i class="fas fa-building"></i> <span>Municipal Hall</span></a></li>
-                <li><a href="admin_barangay_halls.php" class="sidebar-btn"><i class="fas fa-user-friends"></i> <span>Barangay Halls</span></a></li>
+               
             </ul>
         </li>
 
