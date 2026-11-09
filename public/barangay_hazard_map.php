@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 session_start();
 if (!isset($_SESSION['barangay_id'])) {
     header("Location: barangay_login.php");
@@ -184,10 +184,6 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
                     <div class="hm-legend">
                         <h5>Legend</h5>
                         <div class="lg-item"><span class="lg-poly" style="background:rgba(0,114,198,0.35);border:2px solid #0072C6;"></span> Barangay Boundary</div>
-                        <div class="lg-item"><span class="lg-line" style="background:#dc3545;"></span> Prone Area</div>
-                        <div class="lg-item"><span class="lg-ico" style="background:#0072C6;"><i class="fas fa-hospital"></i></span> Evacuation Center</div>
-                        <div class="lg-item"><span class="lg-ico" style="background:#e8710a;"><i class="fas fa-university"></i></span> Barangay Hall</div>
-                        <div class="lg-item"><span class="lg-ico" style="background:#28a745;"><i class="fas fa-school"></i></span> School</div>
                     </div>
                 </div>
             </div>
@@ -562,7 +558,7 @@ function onFreehandEnd(e){
     if (freehand.line) { map.removeLayer(freehand.line); freehand.line = null; }
     document.getElementById('hazardMap').style.cursor = '';
     const pts = freehand.pts.slice();
-    if (pts.length < 3) { hint('Trace too small — press Freehand and try again.'); return; }
+    if (pts.length < 3) { hint('Trace too small â€” press Freehand and try again.'); return; }
     const layer = L.polygon(pts, { color: '#0072C6', fillColor: '#0072C6', fillOpacity: 0.25, weight: 3 });
     layer.addTo(map);
     commitBoundary(layer, MAPDATA.barangay_name || 'Barangay Boundary');
