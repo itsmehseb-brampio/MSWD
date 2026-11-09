@@ -50,7 +50,8 @@
 }
 .hm-panel h3 { font-size: 0.95rem; color: #333; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
 .hm-panel h3 i { color: #11998e; }
-.hm-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.hm-row { display: grid; grid-template-columns: 250px 1fr; gap: 18px; align-items: start; }
+@media (max-width: 900px) { .hm-row { grid-template-columns: 1fr; } }
 .risk-dots { display: flex; gap: 10px; }
 .rdot {
     width: 34px;
@@ -134,7 +135,11 @@
         <span class="status-text" id="mapStatus">Loading hazard data...</span>
     </div>
     <div class="legend">
-        <span class="lg"><i style="background:#0072C6;"></i> Municipality Boundary</span>
+        @if (hasBoundary)
+            <span class="lg"><i style="background:#0072C6;"></i> My Boundary</span>
+        @else
+            <span class="lg" style="color:#777;">No boundary drawn yet</span>
+        @endif
         <span class="lg"><i style="background:#5cb85c;"></i> Low Risk Zone</span>
         <span class="lg"><i style="background:#f0ad4e;"></i> Medium Risk Zone</span>
         <span class="lg"><i style="background:#d9534f;"></i> High Risk Zone</span>
