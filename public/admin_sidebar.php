@@ -72,15 +72,10 @@ if (isset($conn) && !empty($_SESSION['admin_id'])) {
             </ul>
         </li>
 
-        <li class="has-submenu">
-            <a href="javascript:void(0)" onclick="toggleMenu(this)" class="sidebar-btn">
+        <li>
+            <a href="admin_hazard_map.php" class="sidebar-btn <?php echo $current_page === 'admin_hazard_map.php' ? 'active' : ''; ?>">
                 <i class="fas fa-map-marked-alt"></i> <span>Hazard Map Information</span>
             </a>
-            <ul class="submenu">
-                <li><a href="admin_hazard_map.php" class="sidebar-btn"><i class="fas fa-map"></i> <span>Map View</span></a></li>
-                <li><a href="admin_prone_areas.php" class="sidebar-btn"><i class="fas fa-warn"></i> <span>Prone Areas</span></a></li>
-               
-            </ul>
         </li>
 
         <li>
