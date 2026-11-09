@@ -550,6 +550,20 @@ function init() {
         document.getElementById('map').style.display = 'block';
     }
 
+    // If boundary exists, fit map to it
+    if (hasBoundary) {
+        // Find boundary polygon and fit map to its bounds
+        let boundaryLayer = null;
+        layers.features.eachLayer(function (ly) {
+            if (ly.feature && ly.feature.kind === 'boundary') {
+                boundaryLayer = ly;
+            }
+        });
+        if (boundaryLayer) {
+            map.fitBounds(boundaryLayer.getBounds(), { maxZoom: 10 });
+        }
+    }
+
     renderLayers();
     renderRiskDots();
     applyViewLock(hasBoundary);

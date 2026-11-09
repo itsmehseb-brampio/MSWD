@@ -20,6 +20,27 @@ class MunicipalHazardMapData
                 $polygons = self::decodeFeatures($map->hazard_polygons, 'municipality hazard polygons');
                 $points = self::decodeFeatures($map->hazard_points, 'municipality hazard points');
 
+                // If no boundary exists yet, add a default Malilipot municipality boundary
+                $hasBoundary = $polygons->some(function (p) { return $p['kind'] === 'boundary'; });
+                if (!$hasBoundary) {
+                    $malilipotBoundary = [
+                        'id' => 'poly-0',
+                        'kind' => 'boundary',
+                        'name' => 'Malilipot Municipality',
+                        'ptype' => 'polygon',
+                        'color' => '#0072C6',
+                        'type' => 'freehand',
+                        'points' => [
+                            [13.3000, 123.6800],
+                            [13.3800, 123.6800],
+                            [13.3800, 123.7800],
+                            [13.3000, 123.7800],
+                            [13.3000, 123.6800],
+                        ]
+                    ];
+                    $polygons = array_merge([$malilipotBoundary], (array) $polygons);
+                }
+
                 return self::formatData(
                     $map->map_lat ?? 13.3597,
                     $map->map_lng ?? 123.7311,
