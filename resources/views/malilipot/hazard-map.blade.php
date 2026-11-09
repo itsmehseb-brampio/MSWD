@@ -28,6 +28,26 @@
 .hm-btn:hover { border-color: #11998e; color: #11998e; }
 .hm-btn.active { background: #11998e; border-color: #11998e; color: #fff; }
 .hm-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.hm-facility-btn {
+    border: 1.5px solid #d5ded9;
+    background: #fff;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #444;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-right: 4px;
+}
+.hm-facility-btn:hover { border-color: #11998e; color: #11998e; }
+.hm-facility-btn.active { background: #11998e; border-color: #11998e; color: #fff; }
+.hm-facility-btn.police { border-color: #C0392B; color: #C0392B; }
+.hm-facility-btn.police.active { background: #C0392B; color: #fff; }
+.hm-facility-btn.fire { border-color: #E67E22; color: #E67E22; }
+.hm-facility-btn.fire.active { background: #E67E22; color: #fff; }
+.hm-facility-btn.hall { border-color: #2C3E50; color: #2C3E50; }
+.hm-facility-btn.hall.active { background: #2C3E50; color: #fff; }
 .hm-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
 .hm-save {
     background: linear-gradient(90deg, #11998e, #0b6e4f);
@@ -124,6 +144,18 @@
         <button class="hm-btn" data-tool="point"><i class="fas fa-map-pin"></i> Point Marker</button>
         <button class="hm-btn" data-tool="select"><i class="fas fa-hand-pointer"></i> Select</button>
         <button class="hm-btn" data-tool="delete"><i class="fas fa-trash"></i> Delete</button>
+        <div class="hm-facilities">
+            <button class="hm-facility-btn police active" data-facility="police"><i class="fas fa-police"></i> Police</button>
+            <button class="hm-facility-btn fire" data-facility="fire"><i class="fas fa-fire"></i> Fire</button>
+            <button class="hm-facility-btn hall" data-facility="hall"><i class="fas fa-building"></i> Hall</button>
+        </div>
+        <div class="hm-risk-tools">
+            <button class="hm-btn" data-risk="low"><i class="fas fa-smile"></i> Low</button>
+            <button class="hm-btn" data-risk="medium"><i class="fas fa-meh"></i> Medium</button>
+            <button class="hm-btn" data-risk="high"><i class="fas fa-frown"></i> High</button>
+            <button class="hm-btn" data-risk="critical"><i class="fas fa-dizzy"></i> Critical</button>
+        </div>
+        <button class="hm-btn" data-tool="prone"><i class="fas fa-exclamation-circle"></i> Prone Area</button>
         <div class="hm-actions">
             <button class="hm-btn" id="undoBtn" disabled><i class="fas fa-undo"></i> Undo</button>
             <button class="hm-btn" id="cancelBtn" disabled><i class="fas fa-times"></i> Cancel</button>
@@ -491,7 +523,13 @@ function buildPayload() {
     let points = MAPDATA.points.map(function (pt) {
         return { id: pt.id, kind: pt.kind, name: pt.name, color: pt.color, risk: pt.risk || null, lat: pt.lat, lng: pt.lng };
     });
-    return { polygons: polygons, points: points };
+    let facilities = [];
+    let proneAreas = [];
+    // Collect facilities from MAPDATA
+    MAPDATA.facilities || [];
+    // Collect prone areas from MAPDATA
+    MAPDATA.proneAreas || [];
+    return { polygons: polygons, points: points, facilities: facilities, proneAreas: proneAreas };
 }
 
 function saveMap() {
@@ -504,6 +542,8 @@ function saveMap() {
     fd.append('map_zoom', map.getZoom());
     fd.append('hazard_polygons', JSON.stringify(payload.polygons));
     fd.append('hazard_points', JSON.stringify(payload.points));
+    fd.append('facilities', JSON.stringify(payload.facilities));
+    fd.append('proneAreas', JSON.stringify(payload.proneAreas));
 
     document.getElementById('saveBtn').disabled = true;
     let orig = document.getElementById('saveBtn').innerHTML;
@@ -540,6 +580,12 @@ function init() {
     document.querySelectorAll('.basemap-btn').forEach(function (b) {
         b.onclick = function () { setBasemap(b.dataset.basemap); };
     });
+    document.querySelectorAll('.hm-facility-btn').forEach(function (b) {
+        b.onclick = function () { setFacility(b.dataset.facility); };
+    });
+    document.querySelectorAll('.hm-risk-tools .hm-btn').forEach(function (b) {
+        b.onclick = function () { setRiskLevel(b.dataset.risk); };
+    });
 
     // Check if we have data
     if (MAPDATA.total_polygons === 0 && MAPDATA.total_points === 0) {
@@ -572,6 +618,13 @@ function init() {
         ? 'Draw your boundary to begin.'
         : 'Last saved: ' + MAPDATA.updated_at, true);
 
+    // Prone area drawing
+    let proneDrawing = false;
+    let proneTempLayer = null;
+    let pendingPronePoints = null;
+    const PRONE_COLORS = { low: '#f1c40f', medium: '#e67e22', high: '#e74c3c' };
+    const PRONE_RISKS = ['low', 'medium', 'high', 'critical'];
+
     map.on('click', function (e) {
         if (toolState.cur === 'point' && hasBoundary) commitPoint(e.latlng);
         if (toolState.cur === 'polygon' || (toolState.cur === 'hazard' && hasBoundary)) {
@@ -591,15 +644,139 @@ function init() {
                 else commitHazard(pts);
             }
         }
+        if (toolState.cur === 'prone' && hasBoundary) {
+            if (!proneDrawing) {
+                proneDrawing = true;
+                pendingPronePoints = [{ lat: e.latlng.lat, lng: e.latlng.lng }];
+                proneTempLayer = L.polygon(selectedPronePoints(), {
+                    color: PRONE_COLORS[curProneRisk] || '#e74c3c',
+                    weight: 3,
+                    fillOpacity: 0.15
+                }).addTo(map);
+                document.getElementById('cancelBtn').disabled = false;
+            } else if (pendingPronePoints && pendingPronePoints.length >= 3) {
+                let pts = selectedPronePoints();
+                cancelDrawProne();
+                commitProneArea(pts);
+            }
+        }
     });
     map.on('mousemove', function (e) {
         if (!drawing || !tempLayer || !pendingPoints) return;
         pendingPoints.push({ lat: e.latlng.lat, lng: e.latlng.lng });
         tempLayer.setLatLngs(selectedPoints());
     });
+    map.on('mousemove', function (e) {
+        if (!proneDrawing || !proneTempLayer || !pendingPronePoints) return;
+        pendingPronePoints.push({ lat: e.latlng.lat, lng: e.latlng.lng });
+        proneTempLayer.setLatLngs(selectedPronePoints());
+    });
 }
 
-init();
+function selectedPronePoints() {
+    return pendingPronePoints
+        ? pendingPronePoints.map(function (pt) { return [pt.lat, pt.lng]; })
+        : [];
+}
+
+let curFacility = 'police';
+let facilityMarkers = {};
+
+function setFacility(facility) {
+    curFacility = facility;
+    document.querySelectorAll('.hm-facility-btn').forEach(function (b) {
+        b.classList.remove('active');
+        if (b.dataset.facility === facility) b.classList.add('active');
+    });
+}
+
+function commitFacility(latlng) {
+    let name = prompt('Enter a name for this facility:', curFacility + ' Station');
+    if (!name) { setStatus('Facility cancelled.', false); return; }
+    let color = '#';
+    if (facility === 'police') color = '#C0392B';
+    else if (facility === 'fire') color = '#E67E22';
+    else if (facility === 'hall') color = '#2C3E50';
+    
+    let feat = {
+        id: 'fac-' + Date.now(),
+        kind: 'facility',
+        name: name,
+        type: 'marker',
+        color: color,
+        lat: latlng.lat,
+        lng: latlng.lng
+    };
+    MAPDATA.facilities = MAPDATA.facilities || [];
+    MAPDATA.facilities.push(feat);
+    drawFacility(feat);
+    setStatus('Facility added.', true);
+    updateFacilityCount();
+}
+
+function drawFacility(feat) {
+    let iconHtml = '<div style="width:25px;height:25px;border-radius:50%;background:' + feat.color + ';border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-weight:bold;color:#fff;">' + (feat.name.substring(0,2).toUpperCase()) + '</div>';
+    let marker = L.marker([feat.lat, feat.lng], { icon: L.divIcon({ html: iconHtml, iconSize: [25, 25], iconAnchor: [12, 12] }) });
+    marker.feature = feat;
+    marker.bindPopup('<b>' + feat.name + '</b><br>' + feat.kind);
+    marker.addTo(layers.features);
+    facilityMarkers[feat.id] = marker;
+}
+
+function updateFacilityCount() {
+    let count = (MAPDATA.facilities || []).length;
+    setStatus('Facilities: ' + count, true);
+}
+
+function cancelDrawProne() {
+    if (proneTempLayer) {
+        proneTempLayer.remove();
+        proneTempLayer = null;
+    }
+    pendingPronePoints = null;
+    proneDrawing = false;
+    document.getElementById('cancelBtn').disabled = true;
+}
+
+function commitProneArea(points) {
+    let risk = prompt('Enter risk level (low, medium, high):', curProneRisk || 'medium');
+    if (!risk || !['low', 'medium', 'high'].includes(risk)) { setStatus('Prone area cancelled - invalid risk level.', false); return; }
+    let name = prompt('Enter a name for this prone area:', 'Prone Area ' + (MAPDATA.proneAreas ? MAPDATA.proneAreas.length + 1 : 1));
+    let color = { low: '#f1c40f', medium: '#e67e22', high: '#e74c3c' }[risk];
+    let feat = {
+        id: 'prone-' + Date.now(),
+        kind: 'prone_area',
+        name: name || 'Prone Area',
+        type: 'polygon',
+        color: color,
+        risk: risk,
+        points: points
+    };
+    MAPDATA.proneAreas = MAPDATA.proneAreas || [];
+    MAPDATA.proneAreas.push(feat);
+    drawProneArea(feat);
+    setStatus('Prone area added - Risk: ' + risk + '.', true);
+    updateProneCount();
+    cancelDrawProne();
+}
+
+function drawProneArea(feat) {
+    let poly = L.polygon(feat.points, {
+        color: feat.color,
+        weight: 3,
+        fillColor: feat.color,
+        fillOpacity: 0.15
+    });
+    poly.feature = feat;
+    poly.bindPopup('<b>' + feat.name + '</b><br>Risk: <b>' + feat.risk + '</b>');
+    poly.addTo(layers.features);
+}
+
+function updateProneCount() {
+    let count = (MAPDATA.proneAreas || []).length;
+    let el = document.getElementById('proneCount');
+    if (el) el.textContent = count;
+}
 </script>
 @endpush
 
