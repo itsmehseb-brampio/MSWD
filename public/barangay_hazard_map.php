@@ -162,6 +162,11 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
                         <button type="button" class="hm-tool" data-tool="boundary" data-boundary="1" onclick="setTool('boundary')"><i class="fas fa-draw-polygon"></i><span class="hm-t-text"><b>Points</b><small>click corner by corner</small></span></button>
                         <div class="hm-t-label" style="margin-top:4px;">Hazards &amp; Facilities</div>
                         <button type="button" class="hm-tool" data-tool="prone" onclick="setTool('prone')"><i class="fas fa-triangle-exclamation"></i> Prone Area <span class="sw" style="background:#dc3545;"></span></button>
+                        <div class="hm-tool" style="order: 99; width: auto; flex: none; padding: 4px 8px; background: #fff; border: 1px solid #ddd; border-radius: 6px; font-size: 0.65rem; margin-left: 8px; color: #555;" id="proneColorPalette">
+                            <span style="font-weight:700; margin-right: 2px; color: #dc3545;">R</span>
+                            <span style="font-weight:700; margin-right: 2px; color: #fd7e14;">O</span>
+                            <span style="font-weight:700; margin-right: 2px; color: #ffed4a;">Y</span>
+                        </div>
                         <button type="button" class="hm-tool" data-tool="evac" onclick="setTool('evac')"><i class="fas fa-hospital"></i> Evacuation Center <span class="sw" style="background:#0072C6;"></span></button>
                         <button type="button" class="hm-tool" data-tool="hall" onclick="setTool('hall')"><i class="fas fa-university"></i> Barangay Hall <span class="sw" style="background:#e8710a;"></span></button>
                         <button type="button" class="hm-tool" data-tool="school" onclick="setTool('school')"><i class="fas fa-school"></i> School <span class="sw" style="background:#28a745;"></span></button>
@@ -228,7 +233,7 @@ const TOOLS = {
     boundary: { label: 'Barangay Boundary', icon: 'fa-map-marker-alt', color: '#0072C6', shape: 'polygon' },
     boxcrop:  { label: 'Barangay Boundary', icon: 'fa-square', color: '#0072C6', shape: 'box' },
     freehand: { label: 'Barangay Boundary', icon: 'fa-pen', color: '#0072C6', shape: 'freehand' },
-    prone:    { label: 'Prone Area',         icon: 'fa-triangle-exclamation', color: '#dc3545', shape: 'line' },
+    prone:    { label: 'Prone Area',         icon: 'fa-triangle-exclamation', colors: ['#ffed4a', '#fd7e14', '#dc3545'], shape: 'freehand' },
     evac:     { label: 'Evacuation Center',  icon: 'fa-hospital', color: '#0072C6', shape: 'marker' },
     hall:     { label: 'Barangay Hall',      icon: 'fa-university', color: '#e8710a', shape: 'marker' },
     school:   { label: 'School',             icon: 'fa-school', color: '#28a745', shape: 'marker' }
@@ -241,6 +246,7 @@ let undoStack = [];
 let freehand = null;
 let dirty = false;
 let pendingProneLayer = null;
+let currentProneColor = '#dc3545'; // default red
 
 function markerIcon(color, icon){
     return L.divIcon({
@@ -273,7 +279,7 @@ function loadLayers(){
         const sub = p.kind === 'prone' ? 'Prone Area' + (p.ptype ? ': ' + p.ptype : '') : 'Barangay Boundary';
         layer.bindPopup('<b>' + esc(p.name || TOOLS[p.kind]?.label || 'Area') + '</b><br><small>' + sub + '</small>');
         attachLayer(layer, p.id);
-        polygons.push({ id: p.id, kind: p.kind, name: p.name, ptype: p.ptype, layer });
+        polygons.push({ id: p.id, kind: p.kind, name: p.name, ptype: p.ptype, color: p.color, layer });
     });
     (MAPDATA.points || []).forEach(m => {
         const meta = TOOLS[m.kind] || TOOLS.evac;
@@ -500,14 +506,13 @@ function closeProneModal(){
 }
 
 function addPolylineLayer(layer, tool, name, ptype){
-    const meta = TOOLS[tool];
     undoStack.push({ type: 'add_polygon', layer: layer, index: polygons.length });
-    layer.setStyle({ color: meta.color, weight: 6, opacity: 0.95 });
+    layer.setStyle({ color: currentProneColor, weight: 6, opacity: 0.95 });
     layer.addTo(map);
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     layer.bindPopup('<b>' + esc(name) + '</b><br><small>' + meta.label + ': ' + esc(ptype) + '</small>');
     attachLayer(layer, id);
-    polygons.push({ id: id, kind: tool, name: name, ptype: ptype, layer });
+    polygons.push({ id: id, kind: tool, name: name, ptype: ptype, color: currentProneColor, layer });
     updateStep();
     updateUndoBtn();
     resetTool();
@@ -563,9 +568,12 @@ function onFreehandEnd(e){
     document.getElementById('hazardMap').style.cursor = '';
     const pts = freehand.pts.slice();
     if (pts.length < 3) { hint('Trace too small — press Freehand and try again.'); return; }
-    const layer = L.polygon(pts, { color: '#0072C6', fillColor: '#0072C6', fillOpacity: 0.25, weight: 3 });
-    layer.addTo(map);
-    commitBoundary(layer, MAPDATA.barangay_name || 'Barangay Boundary');
+    const layer = L.polygon(pts, { color: currentProneColor, fillColor: currentProneColor, fillOpacity: 0.25, weight: 3 });
+    // Store as pending prone layer to go through the modal for type/name
+    pendingProneLayer = layer;
+    document.getElementById('proneType').value = 'Flood';
+    document.getElementById('proneName').value = '';
+    document.getElementById('proneModal').classList.add('show');
 }
 
 function attachLayer(layer, id){
@@ -620,6 +628,30 @@ function hint(msg){
     el.style.display = msg ? 'block' : 'none';
     el.textContent = msg;
 }
+
+// Prone area color selection
+document.getElementById('proneColorPalette').addEventListener('click', function(e) {
+    const spans = e.target.parentElement.querySelectorAll('span');
+    if (!spans.length) return;
+    // Remove selected class from all
+    document.querySelectorAll('#proneColorPalette span').forEach(s => s.style.fontWeight = 'normal');
+    // Add selected to clicked
+    e.target.style.fontWeight = 'bold';
+    // Update the button's span color
+    const btnSpan = document.querySelector('.hm-tool.prone .sw');
+    if (btnSpan) {
+        if (e.target.style.color === '#dc3545') {
+            currentProneColor = '#dc3545';
+            btnSpan.style.background = '#dc3545';
+        } else if (e.target.style.color === '#fd7e14') {
+            currentProneColor = '#fd7e14';
+            btnSpan.style.background = '#fd7e14';
+        } else if (e.target.style.color === '#ffed4a') {
+            currentProneColor = '#ffed4a';
+            btnSpan.style.background = '#ffed4a';
+        }
+    }
+});
 
 function showToast(msg){
     const t = document.getElementById('hmToast');
@@ -676,8 +708,8 @@ function saveMap(){
     fd.append('map_lat', map.getCenter().lat.toFixed(6));
     fd.append('map_lng', map.getCenter().lng.toFixed(6));
     fd.append('map_zoom', map.getZoom());
-    fd.append('hazard_polygons', JSON.stringify(polygons.map(p => ({ id: p.id, kind: p.kind, name: p.name, ptype: p.ptype || null, color: TOOLS[p.kind].color, type: p.layer instanceof L.Polygon ? 'polygon' : 'line', points: toPoints(p.layer) }))));
-    fd.append('hazard_points', JSON.stringify(markers.map(m => ({ id: m.id, kind: m.kind, name: m.name, color: TOOLS[m.kind].color, lat: m.layer.getLatLng().lat, lng: m.layer.getLatLng().lng }))));
+    fd.append('hazard_polygons', JSON.stringify(polygons.map(p => ({ id: p.id, kind: p.kind, name: p.name, ptype: p.ptype || null, color: p.color || (p.kind === 'prone' ? currentProneColor : TOOLS[p.kind]?.color || '#000000'), type: p.layer instanceof L.Polygon ? 'polygon' : 'line', points: toPoints(p.layer) }))));
+    fd.append('hazard_points', JSON.stringify(markers.map(m => ({ id: m.id, kind: m.kind, name: m.name, color: TOOLS[m.kind]?.color || '#0072C6', lat: m.layer.getLatLng().lat, lng: m.layer.getLatLng().lng }))));
 
     fetch('hazard_map_api.php', { method: 'POST', body: fd })
         .then(r => r.json())
