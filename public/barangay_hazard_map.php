@@ -293,7 +293,6 @@ let pendingProneFeature = null;
 let proneFreehand = null;
 let editProneMode = false;
 let currentProneColor = '#dc3545'; // default red
-let boundaryMask = null;
 const PRONE_TYPES = ['Flood', 'Storm', 'Landslide', 'Volcanic', 'Earthquake', 'Fire', 'Erosion', 'Other'];
 const proneTypeVisibility = new Map();
 
@@ -311,8 +310,6 @@ function initMap(){
     const zoom = MAPDATA.lat !== null ? (MAPDATA.zoom || 14) : 13;
 
     map = L.map('hazardMap', { zoomControl: true }).setView([lat, lng], zoom);
-    map.createPane('boundaryMaskPane');
-    map.getPane('boundaryMaskPane').style.zIndex = 650;
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 20, attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
@@ -345,7 +342,6 @@ function loadLayers(){
 
     const boundary = polygons.find(p => p.kind === 'boundary');
     if (boundary) {
-        refreshBoundaryMask();
         applyViewLock();
     }
 
@@ -401,26 +397,6 @@ function orderProneLayersByRisk(){
         .forEach(feature => {
             if (map.hasLayer(feature.layer)) feature.layer.bringToFront();
         });
-}
-
-function refreshBoundaryMask(){
-    if (boundaryMask) {
-        map.removeLayer(boundaryMask);
-        boundaryMask = null;
-    }
-    const boundary = polygons.find(p => p.kind === 'boundary');
-    if (!boundary) return;
-    const rings = boundary.layer.getLatLngs();
-    const boundaryRings = Array.isArray(rings[0]) ? rings : [rings];
-    const worldRing = [[-85, -180], [-85, 180], [85, 180], [85, -180]];
-    boundaryMask = L.polygon([worldRing, ...boundaryRings], {
-        pane: 'boundaryMaskPane',
-        stroke: false,
-        fillColor: '#ffffff',
-        fillOpacity: 1,
-        fillRule: 'evenodd',
-        interactive: false
-    }).addTo(map);
 }
 
 function applyViewLock(){
@@ -490,7 +466,6 @@ function doUndo(){
         attachLayer(a.oldLayer, a.oldObj.id);
         polygons.splice(a.oldIndex, 0, a.oldObj);
     }
-    refreshBoundaryMask();
     initProneFilters();
     updateStep();
     updateUndoBtn();
@@ -750,7 +725,6 @@ function commitBoundary(layer, name){
     layer.bindPopup(featurePopup(name, meta.label, meta.icon));
     attachLayer(layer, id);
     polygons.push({ id: id, kind: 'boundary', name: name, layer });
-    refreshBoundaryMask();
     applyViewLock();
     updateStep();
     updateUndoBtn();
@@ -857,7 +831,6 @@ function attachLayer(layer, id){
             undoStack.push({ type: 'del_polygon', layer: polygons[pi].layer, index: pi, obj: polygons[pi] });
             map.removeLayer(polygons[pi].layer);
             polygons.splice(pi, 1);
-                refreshBoundaryMask();
                 updateStep(); updateUndoBtn();
             dirty = true;
             return;

@@ -184,8 +184,6 @@ function initMap(){
     const zoom = MAPDATA.lat !== null ? (MAPDATA.zoom || 14) : 13;
 
     map = L.map('hazardMap', { zoomControl: true }).setView([lat, lng], zoom);
-    map.createPane('boundaryMaskPane');
-    map.getPane('boundaryMaskPane').style.zIndex = 650;
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 20, attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
@@ -217,23 +215,10 @@ function initMap(){
 
     const boundary = (MAPDATA.polygons || []).find(p => p.kind === 'boundary' && p.points && p.points.length);
     if (boundary) {
-        addBoundaryMask(boundary.points);
         const b = L.polygon(boundary.points).getBounds();
         if (b.isValid()) map.fitBounds(b, { padding: [40, 40] });
         map.on('zoomend', keepCentered);
     }
-}
-
-function addBoundaryMask(boundaryPoints){
-    const worldRing = [[-85, -180], [-85, 180], [85, 180], [85, -180]];
-    L.polygon([worldRing, boundaryPoints], {
-        pane: 'boundaryMaskPane',
-        stroke: false,
-        fillColor: '#ffffff',
-        fillOpacity: 1,
-        fillRule: 'evenodd',
-        interactive: false
-    }).addTo(map);
 }
 
 function normalizeProneType(type){

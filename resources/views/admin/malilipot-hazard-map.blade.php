@@ -48,8 +48,6 @@ const map = L.map('municipal-hazard-map', {
     zoom: MAPDATA.zoom,
     scrollWheelZoom: false
 });
-map.createPane('boundaryMaskPane');
-map.getPane('boundaryMaskPane').style.zIndex = 650;
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -113,15 +111,6 @@ const boundary = MAPDATA.polygons.find(function (polygon) {
     return polygon.kind === 'boundary' && Array.isArray(polygon.points) && polygon.points.length;
 });
 if (boundary) {
-    const worldRing = [[-85, -180], [-85, 180], [85, 180], [85, -180]];
-    L.polygon([worldRing, boundary.points], {
-        pane: 'boundaryMaskPane',
-        stroke: false,
-        fillColor: '#ffffff',
-        fillOpacity: 1,
-        fillRule: 'evenodd',
-        interactive: false
-    }).addTo(map);
     map.fitBounds(L.polygon(boundary.points).getBounds(), { padding: [40, 40] });
 } else if (features.getLayers().length) {
     map.fitBounds(features.getBounds().pad(0.15), { maxZoom: 16 });
