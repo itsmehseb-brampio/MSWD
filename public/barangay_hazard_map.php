@@ -81,6 +81,16 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
 .hm-tool.undo:disabled{opacity:0.45;cursor:not-allowed;}
 .hm-undocnt{background:#e8ecf0;border-radius:9px;padding:0 7px;font-size:0.68rem;color:#555;margin-left:auto;}
 .hm-tool .sw{width:12px;height:12px;border-radius:3px;margin-left:auto;flex-shrink:0;}
+.hm-prone-panel{background:#fff;border:1px solid #eee;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:7px;}
+.hm-prone-title{font-size:0.78rem;font-weight:700;color:#444;}
+.hm-prone-help{font-size:0.68rem;color:#888;line-height:1.35;}
+.hm-prone-colors{display:flex;flex-direction:column;gap:6px;}
+.hm-prone-color{display:flex;align-items:center;gap:8px;width:100%;padding:7px 9px;border:1px solid #e0e0e0;border-radius:8px;background:#fff;color:#444;font-size:0.75rem;font-weight:600;text-align:left;cursor:pointer;}
+.hm-prone-color:hover{background:#f5f7fa;}
+.hm-prone-color.selected{border-color:#0072C6;box-shadow:0 0 0 2px rgba(0,114,198,0.12);}
+.hm-prone-color.drawing{background:#eaf4fb;}
+.hm-prone-color:disabled{opacity:0.45;cursor:not-allowed;}
+.hm-prone-swatch{width:14px;height:14px;border:1px solid rgba(0,0,0,0.15);border-radius:50%;flex:none;}
 
 .hm-hint{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:800;background:rgba(0,0,0,0.75);color:#fff;font-size:0.78rem;padding:8px 18px;border-radius:20px;display:none;white-space:nowrap;pointer-events:none;}
 
@@ -141,18 +151,21 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
                         <button type="button" class="hm-tool" data-tool="freehand" data-boundary="1" onclick="setTool('freehand')"><i class="fas fa-pen"></i><span class="hm-t-text"><b>Freehand</b><small>hold &amp; trace around</small></span></button>
                         <button type="button" class="hm-tool" data-tool="boundary" data-boundary="1" onclick="setTool('boundary')"><i class="fas fa-draw-polygon"></i><span class="hm-t-text"><b>Points</b><small>click corner by corner</small></span></button>
                         <div class="hm-t-label" style="margin-top:4px;">Hazards &amp; Facilities</div>
-                        <button type="button" class="hm-tool" data-tool="prone" onclick="showProneToolPrompt()"><i class="fas fa-triangle-exclamation"></i> Prone Area <span class="sw" style="background:#dc3545;"></span></button>
-                        <div class="hm-tool" style="order: 99; width: auto; flex: none; padding: 4px 8px; background: #fff; border: 1px solid #ddd; border-radius: 6px; font-size: 0.65rem; margin-left: 8px; color: #555;" id="proneColorPalette">
-                            <span style="font-weight:700; margin-right: 2px; color: #dc3545;">R</span>
-                            <span style="font-weight:700; margin-right: 2px; color: #fd7e14;">O</span>
-                            <span style="font-weight:700; margin-right: 2px; color: #ffed4a;">Y</span>
-                        </div>
                         <button type="button" class="hm-tool" data-tool="evac" onclick="setTool('evac')"><i class="fas fa-hospital"></i> Evacuation Center <span class="sw" style="background:#0072C6;"></span></button>
                         <button type="button" class="hm-tool" data-tool="hall" onclick="setTool('hall')"><i class="fas fa-university"></i> Barangay Hall <span class="sw" style="background:#e8710a;"></span></button>
                         <button type="button" class="hm-tool" data-tool="school" onclick="setTool('school')"><i class="fas fa-school"></i> School <span class="sw" style="background:#28a745;"></span></button>
                         <div class="hm-t-label" style="margin-top:4px;">Edit</div>
                         <button type="button" class="hm-tool undo" id="undoBtn" onclick="doUndo()"><i class="fas fa-undo"></i> Undo <span class="hm-undocnt" id="undoCnt">0</span></button>
                         <button type="button" class="hm-tool delete" data-tool="delete" onclick="setTool('delete')"><i class="fas fa-trash-alt"></i> Delete</button>
+                    </div>
+                    <div class="hm-prone-panel">
+                        <div class="hm-prone-title">Prone Area</div>
+                        <div class="hm-prone-help">Choose a color, then click map corners to draw an area.</div>
+                        <div class="hm-prone-colors" role="group" aria-label="Prone area color">
+                            <button type="button" class="hm-prone-color" data-color="#ffed4a" aria-pressed="false" onclick="startProneDrawing(this)"><span class="hm-prone-swatch" style="background:#ffed4a;"></span>Yellow</button>
+                            <button type="button" class="hm-prone-color" data-color="#fd7e14" aria-pressed="false" onclick="startProneDrawing(this)"><span class="hm-prone-swatch" style="background:#fd7e14;"></span>Orange</button>
+                            <button type="button" class="hm-prone-color selected" data-color="#dc3545" aria-pressed="true" onclick="startProneDrawing(this)"><span class="hm-prone-swatch" style="background:#dc3545;"></span>Red</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -193,7 +206,7 @@ const TOOLS = {
     boundary: { label: 'Barangay Boundary', icon: 'fa-map-marker-alt', color: '#0072C6', shape: 'polygon' },
     boxcrop:  { label: 'Barangay Boundary', icon: 'fa-square', color: '#0072C6', shape: 'box' },
     freehand: { label: 'Barangay Boundary', icon: 'fa-pen', color: '#0072C6', shape: 'freehand' },
-    prone:    { label: 'Prone Area',         icon: 'fa-triangle-exclamation', color: '#dc3545', shape: 'freehand' },
+    prone:    { label: 'Prone Area',         icon: 'fa-triangle-exclamation', color: '#dc3545', shape: 'polygon' },
     evac:     { label: 'Evacuation Center',  icon: 'fa-hospital', color: '#0072C6', shape: 'marker' },
     hall:     { label: 'Barangay Hall',      icon: 'fa-university', color: '#e8710a', shape: 'marker' },
     school:   { label: 'School',             icon: 'fa-school', color: '#28a745', shape: 'marker' }
@@ -282,6 +295,7 @@ function updateStep(){
         b.disabled = !hasB;
         b.classList.toggle('locked', !hasB);
     });
+    document.querySelectorAll('.hm-prone-color').forEach(b => b.disabled = !hasB);
     document.getElementById('saveBtn').disabled = !hasB;
 }
 
@@ -353,6 +367,9 @@ function setTool(tool){
     const meta = TOOLS[tool];
     currentTool = tool;
     if (btn) btn.classList.add('active');
+    if (tool === 'prone') {
+        document.querySelector('.hm-prone-color.selected')?.classList.add('drawing');
+    }
 
     if (meta.shape === 'freehand') {
         freehand = { drawing: false, pts: [], line: null };
@@ -366,57 +383,16 @@ function setTool(tool){
         return;
     }
 
-    if (meta.shape === 'choice') {
-        // Prompt user to choose method and color
-        const method = prompt('Choose prone area drawing method:\n1. Freehand (hold & trace)\n2. Points (click corner by corner)', '1');
-        if (method === null) { resetTool(); return; }
-        method = method.trim();
-        let colorChoice;
-        if (method === '2' || method === 'points') {
-            // Points mode - original behavior
-            colorChoice = prompt('Choose color for prone area:\n1. Red (#dc3545)\n2. Orange (#fd7e14)\n3. Yellow (#ffed45)', '1');
-            if (colorChoice === null) { resetTool(); return; }
-            colorChoice = colorChoice.trim();
-            if (colorChoice === '1') currentProneColor = '#dc3545';
-            else if (colorChoice === '2') currentProneColor = '#fd7e14';
-            else if (colorChoice === '3') currentProneColor = '#ffed4a';
-            else { alert('Invalid color choice. Defaulting to Red.'); currentProneColor = '#dc3545'; }
-            // Proceed with points mode
-            currentTool = 'prone'; // set to prone for points behavior
-            // Re-run setTool without the choice prompt
-            setTool('prone');
-            return;
-        } else {
-            // Freehand mode
-            colorChoice = prompt('Choose color for prone area:\n1. Red (#dc3545)\n2. Orange (#fd7e14)\n3. Yellow (#ffed45)', '1');
-            if (colorChoice === null) { resetTool(); return; }
-            colorChoice = colorChoice.trim();
-            if (colorChoice === '1') { currentProneColor = '#dc3545'; }
-            else if (colorChoice === '2') { currentProneColor = '#fd7e14'; }
-            else if (colorChoice === '3') { currentProneColor = '#ffed4a'; }
-            else { alert('Invalid color choice. Defaulting to Red.'); currentProneColor = '#dc3545'; }
-        }
-        hint('Freehand mode selected. Hold mouse button and trace around the prone area.');
-        // Freehand is already set up below
-        freehand = { drawing: false, pts: [], line: null };
-        map.dragging.disable();
-        map.doubleClickZoom.disable();
-        map.on('mousedown', onFreehandStart);
-        map.on('mousemove', onFreehandMove);
-        map.on('mouseup', onFreehandEnd);
-        document.addEventListener('mouseup', onFreehandEnd);
-        return;
-    }
-
     if (meta.shape === 'box') {
         drawHandler = new L.Draw.Rectangle(map, {
             shapeOptions: { color: meta.color, fillColor: meta.color, fillOpacity: 0.25, weight: 3 }
         });
     } else if (meta.shape === 'polygon') {
+        const color = tool === 'prone' ? currentProneColor : meta.color;
         drawHandler = new L.Draw.Polygon(map, {
             allowIntersection: false,
             showArea: true,
-            shapeOptions: { color: meta.color, fillColor: meta.color, fillOpacity: 0.25, weight: 3 }
+            shapeOptions: { color: color, fillColor: color, fillOpacity: 0.25, weight: 3 }
         });
     } else if (meta.shape === 'line') {
         drawHandler = new L.Draw.Polyline(map, {
@@ -498,7 +474,7 @@ function confirmProne(){
     let name = document.getElementById('proneName').value.trim();
     if (!name) name = ptype;
     closeProneModal();
-    addPolylineLayer(layer, 'prone', name, ptype);
+    addProneArea(layer, name, ptype);
 }
 
 function closeProneModal(){
@@ -507,14 +483,14 @@ function closeProneModal(){
     resetTool();
 }
 
-function addPolylineLayer(layer, tool, name, ptype){
+function addProneArea(layer, name, ptype){
     undoStack.push({ type: 'add_polygon', layer: layer, index: polygons.length });
-    layer.setStyle({ color: currentProneColor, weight: 6, opacity: 0.95 });
+    layer.setStyle({ color: currentProneColor, fillColor: currentProneColor, fillOpacity: 0.25, weight: 3, opacity: 0.95 });
     layer.addTo(map);
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-    layer.bindPopup('<b>' + esc(name) + '</b><br><small>' + meta.label + ': ' + esc(ptype) + '</small>');
+    layer.bindPopup('<b>' + esc(name) + '</b><br><small>Prone Area: ' + esc(ptype) + '</small>');
     attachLayer(layer, id);
-    polygons.push({ id: id, kind: tool, name: name, ptype: ptype, color: currentProneColor, layer });
+    polygons.push({ id: id, kind: 'prone', name: name, ptype: ptype, color: currentProneColor, layer });
     updateStep();
     updateUndoBtn();
     resetTool();
@@ -570,12 +546,8 @@ function onFreehandEnd(e){
     document.getElementById('hazardMap').style.cursor = '';
     const pts = freehand.pts.slice();
     if (pts.length < 3) { hint('Trace too small — press Freehand and try again.'); return; }
-    const layer = L.polygon(pts, { color: currentProneColor, fillColor: currentProneColor, fillOpacity: 0.25, weight: 3 });
-    // Store as pending prone layer to go through the modal for type/name
-    pendingProneLayer = layer;
-    document.getElementById('proneType').value = 'Flood';
-    document.getElementById('proneName').value = '';
-    document.getElementById('proneModal').classList.add('show');
+    const layer = L.polygon(pts);
+    commitBoundary(layer, MAPDATA.barangay_name || 'Barangay Boundary');
 }
 
 function attachLayer(layer, id){
@@ -616,6 +588,7 @@ function cancelDraw(){
     if (drawHandler) { drawHandler.disable(); drawHandler = null; }
     if (currentTool) currentTool = null;
     deleteMode = false;
+    document.querySelectorAll('.hm-prone-color').forEach(b => b.classList.remove('drawing'));
     document.querySelectorAll('.hm-tool').forEach(b => b.classList.remove('active'));
     hint('');
 }
@@ -631,67 +604,15 @@ function hint(msg){
     el.textContent = msg;
 }
 
-function showProneToolPrompt(){
-    // Ask user: Freehand or Points?
-    const method = prompt('Choose prone area drawing method:\n1. Freehand (hold & trace around area)\n2. Points (click corner by corner)\n\nEnter 1 or 2:', '1');
-    if (method === null) return; // User cancelled
-    method = method.trim();
-    if (method !== '1' && method !== '2') {
-        alert('Invalid choice. Please enter 1 or 2.');
-        return showProneToolPrompt(); // Recursive retry
-    }
-    
-    // Ask user: Choose color
-    const colorChoice = prompt('Choose color for prone area:\n1. Red (#dc3545)\n2. Orange (#fd7e14)\n3. Yellow (#ffed4a)\n\nEnter 1, 2, or 3:', '1');
-    if (colorChoice === null) return; // User cancelled
-    colorChoice = colorChoice.trim();
-    if (colorChoice === '1') currentProneColor = '#dc3545';
-    else if (colorChoice === '2') currentProneColor = '#fd7e14';
-    else if (colorChoice === '3') currentProneColor = '#ffed4a';
-    else { alert('Invalid color choice. Defaulting to Red.'); currentProneColor = '#dc3545'; }
-    
-    // Update the button's color indicator
-    const btnSpan = document.querySelector('.hm-tool.prone .sw');
-    if (btnSpan) {
-        btnSpan.style.background = currentProneColor;
-        btnSpan.style.color = '#fff';
-    }
-    
-    // Let the existing setTool logic handle the setup
+function startProneDrawing(button){
+    currentProneColor = button.dataset.color;
+    document.querySelectorAll('.hm-prone-color').forEach(option => {
+        const selected = option === button;
+        option.classList.toggle('selected', selected);
+        option.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
     setTool('prone');
-    
-    // Adjust the hint based on chosen method
-    const hintEl = document.getElementById('hmHint');
-    if (method === '1') {
-        hintEl.textContent = 'Freehand mode: Hold mouse button and trace around the prone area, then release';
-    } else {
-        hintEl.textContent = 'Points mode: Click points along the prone area, then click the last point to finish';
-    }
 }
-
-// Prone area color selection
-document.getElementById('proneColorPalette').addEventListener('click', function(e) {
-    const spans = e.target.parentElement.querySelectorAll('span');
-    if (!spans.length) return;
-    // Remove selected class from all
-    document.querySelectorAll('#proneColorPalette span').forEach(s => s.style.fontWeight = 'normal');
-    // Add selected to clicked
-    e.target.style.fontWeight = 'bold';
-    // Update the button's span color
-    const btnSpan = document.querySelector('.hm-tool.prone .sw');
-    if (btnSpan) {
-        if (e.target.style.color === '#dc3545') {
-            currentProneColor = '#dc3545';
-            btnSpan.style.background = '#dc3545';
-        } else if (e.target.style.color === '#fd7e14') {
-            currentProneColor = '#fd7e14';
-            btnSpan.style.background = '#fd7e14';
-        } else if (e.target.style.color === '#ffed4a') {
-            currentProneColor = '#ffed4a';
-            btnSpan.style.background = '#ffed4a';
-        }
-    }
-});
 
 function showToast(msg){
     const t = document.getElementById('hmToast');
