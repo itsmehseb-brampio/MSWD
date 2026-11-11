@@ -162,11 +162,11 @@ function initMap(){
         if (!p.points || !p.points.length) return;
         const meta = VIEW_META[p.kind] || VIEW_META.prone;
         const layer = (p.type === 'line')
-            ? L.polyline(p.points, { color: p.color || meta.color, weight: 6, opacity: 0.95 })
+            ? L.polyline(p.points, { color: p.color || meta.color, weight: p.kind === 'prone' ? 10 : 6, opacity: 0.95, lineCap: 'round', lineJoin: 'round' })
             : L.polygon(p.points, { color: p.color || meta.color, fillColor: p.color || meta.color, fillOpacity: 0.25, weight: 3 });
         layer.addTo(map);
         const sub = p.kind === 'prone' ? 'Prone Area' + (p.ptype ? ': ' + p.ptype : '') : meta.label;
-        layer.bindPopup('<b>' + esc(p.name || meta.label) + '</b><br><small>' + sub + '</small>');
+        layer.bindPopup(p.kind === 'prone' ? pronePopup(p.name, p.ptype, p.color) : '<b>' + esc(p.name || meta.label) + '</b><br><small>' + sub + '</small>');
     });
     (MAPDATA.points || []).forEach(m => {
         const meta = VIEW_META[m.kind] || VIEW_META.evac;
@@ -189,6 +189,17 @@ function keepCentered(){
     const b = L.polygon(boundary.points).getBounds();
     if (!b.isValid()) return;
     map.setView(b.getCenter(), map.getZoom(), { animate: false });
+}
+
+function proneRisk(color){
+    const levelByColor = { '#ffed4a': 'Low', '#fd7e14': 'Medium', '#dc3545': 'High' };
+    return levelByColor[String(color || '').toLowerCase()] || 'High';
+}
+
+function pronePopup(name, type, color){
+    return '<b>' + esc(name || type || 'Prone Area') + '</b><br>'
+        + '<small>Type: ' + esc(type || 'Other') + ' Prone</small><br>'
+        + '<small>Risk Level: ' + proneRisk(color) + '</small>';
 }
 
 function esc(t){ if (t === null || t === undefined) return ''; const d = document.createElement('div'); d.appendChild(document.createTextNode(String(t))); return d.innerHTML; }

@@ -246,11 +246,11 @@ function loadLayers(){
     (MAPDATA.polygons || []).forEach(p => {
         const isLine = p.type === 'line';
         const layer = isLine
-            ? L.polyline(p.points, { color: p.color || '#0072C6', weight: 6, opacity: 0.95 })
+            ? L.polyline(p.points, { color: p.color || '#0072C6', weight: p.kind === 'prone' ? 10 : 6, opacity: 0.95, lineCap: 'round', lineJoin: 'round' })
             : L.polygon(p.points, { color: p.color || '#0072C6', fillColor: p.color || '#0072C6', fillOpacity: 0.25, weight: 3 });
         layer.addTo(map);
         const sub = p.kind === 'prone' ? 'Prone Area' + (p.ptype ? ': ' + p.ptype : '') : 'Barangay Boundary';
-        layer.bindPopup('<b>' + esc(p.name || TOOLS[p.kind]?.label || 'Area') + '</b><br><small>' + sub + '</small>');
+        layer.bindPopup(p.kind === 'prone' ? pronePopup(p.name, p.ptype, p.color) : '<b>' + esc(p.name || TOOLS[p.kind]?.label || 'Area') + '</b><br><small>' + sub + '</small>');
         attachLayer(layer, p.id);
         polygons.push({ id: p.id, kind: p.kind, name: p.name, ptype: p.ptype, color: p.color, layer });
     });
@@ -347,6 +347,17 @@ function fmtTs(s){
     const d = new Date(String(s).replace(' ', 'T'));
     if (isNaN(d)) return s;
     return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+function proneRisk(color){
+    const levelByColor = { '#ffed4a': 'Low', '#fd7e14': 'Medium', '#dc3545': 'High' };
+    return levelByColor[String(color || '').toLowerCase()] || 'High';
+}
+
+function pronePopup(name, type, color){
+    return '<b>' + esc(name || type || 'Prone Area') + '</b><br>'
+        + '<small>Type: ' + esc(type || 'Other') + ' Prone</small><br>'
+        + '<small>Risk Level: ' + proneRisk(color) + '</small>';
 }
 
 function setTool(tool){
@@ -484,10 +495,10 @@ function closeProneModal(){
 
 function addProneArea(layer, name, ptype){
     undoStack.push({ type: 'add_polygon', layer: layer, index: polygons.length });
-    layer.setStyle({ color: currentProneColor, weight: 6, opacity: 0.95 });
+    layer.setStyle({ color: currentProneColor, weight: 10, opacity: 0.95, lineCap: 'round', lineJoin: 'round' });
     layer.addTo(map);
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-    layer.bindPopup('<b>' + esc(name) + '</b><br><small>Prone Area: ' + esc(ptype) + '</small>');
+    layer.bindPopup(pronePopup(name, ptype, currentProneColor));
     attachLayer(layer, id);
     polygons.push({ id: id, kind: 'prone', name: name, ptype: ptype, color: currentProneColor, layer });
     updateStep();
