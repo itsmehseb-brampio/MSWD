@@ -222,9 +222,9 @@ let group = L.featureGroup();
             fillOpacity: 0.22
         });
     } else if (Array.isArray(p.points) && p.points.length) {
-        layer = p.kind === 'prone' || p.type === 'line'
+        layer = (p.kind === 'prone' ? p.type !== 'polygon' : p.type === 'line')
             ? L.polyline(p.points, { color: color, weight: 5 })
-            : L.polygon(p.points, { color: color, weight: 3, fillColor: color, fillOpacity: 0.25 });
+            : L.polygon(p.points, { color: color, weight: 3, fillColor: color, fillOpacity: p.kind === 'prone' ? 0.35 : 0.25 });
     }
     if (layer) {
         const proneRisk = { '#ffed4a': 'Low', '#fd7e14': 'Medium', '#dc3545': 'High' }[String(p.color || '').toLowerCase()];

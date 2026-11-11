@@ -78,10 +78,10 @@ const features = L.featureGroup();
             fillOpacity: 0.22
         }).addTo(features);
     } else if (Array.isArray(polygon.points) && polygon.points.length) {
-        const isLine = polygon.kind === 'prone' || polygon.type === 'line';
+        const isLine = polygon.kind === 'prone' ? polygon.type !== 'polygon' : polygon.type === 'line';
         const layer = isLine
             ? L.polyline(polygon.points, { color: color, weight: 7, opacity: 0.95, lineCap: 'round', lineJoin: 'round' })
-            : L.polygon(polygon.points, { color: color, fillColor: color, fillOpacity: 0.25 });
+            : L.polygon(polygon.points, { color: color, fillColor: color, fillOpacity: polygon.kind === 'prone' ? 0.35 : 0.25 });
         const proneRisk = { '#ffed4a': 'Low', '#fd7e14': 'Medium', '#dc3545': 'High' }[String(polygon.color || '').toLowerCase()];
         const detail = polygon.kind === 'prone'
             ? (polygon.ptype || 'Other') + ' Prone - ' + (polygon.risk || proneRisk || 'High') + ' risk'

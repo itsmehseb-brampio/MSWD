@@ -369,10 +369,11 @@ function selectedPoints() {
 }
 
 function drawFeature(feat) {
-    if (feat.type === 'line' || feat.ptype === 'line' || feat.kind === 'prone') {
+    let isLine = feat.kind === 'prone' ? feat.type !== 'polygon' : (feat.type === 'line' || feat.ptype === 'line');
+    if (isLine) {
         let line = L.polyline(feat.points || [], {
             color: feat.color || '#0072C6',
-            weight: 6,
+            weight: feat.kind === 'prone' ? 7 : 6,
             opacity: 0.95
         });
         line.feature = feat;
@@ -385,7 +386,7 @@ function drawFeature(feat) {
             color: feat.color || '#0072C6',
             weight: 3,
             fillColor: feat.color || '#0072C6',
-            fillOpacity: 0.25
+            fillOpacity: feat.kind === 'prone' ? 0.35 : 0.25
         });
         poly.feature = feat;
         poly.bindPopup(popupHtml(feat));
@@ -665,8 +666,9 @@ function init() {
                 pendingPronePoints = [{ lat: e.latlng.lat, lng: e.latlng.lng }];
                 proneTempLayer = L.polygon(selectedPronePoints(), {
                     color: PRONE_COLORS[curProneRisk] || '#e74c3c',
+                    fillColor: PRONE_COLORS[curProneRisk] || '#e74c3c',
                     weight: 3,
-                    fillOpacity: 0.15
+                    fillOpacity: 0.35
                 }).addTo(map);
                 document.getElementById('cancelBtn').disabled = false;
             } else if (pendingPronePoints && pendingPronePoints.length >= 3) {
@@ -768,7 +770,7 @@ function commitProneArea(points) {
         kind: 'prone',
         name: name || 'Prone Area',
         ptype: proneType,
-        type: 'line',
+        type: 'polygon',
         color: color,
         risk: risk.charAt(0).toUpperCase() + risk.slice(1),
         points: points

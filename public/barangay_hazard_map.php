@@ -239,7 +239,7 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
         </select>
         <label>Name</label>
         <input type="text" id="proneName" placeholder="e.g. River flood zone" maxlength="60">
-        <label>Line color</label>
+        <label>Area / line color</label>
         <select id="proneColor">
             <option value="#ffed4a">Yellow - Low risk</option>
             <option value="#fd7e14">Orange - Medium risk</option>
@@ -303,17 +303,17 @@ function initMap(){
 
 function loadLayers(){
     (MAPDATA.polygons || []).forEach(p => {
-        const isLine = p.kind === 'prone' || p.type === 'line';
+        const isLine = p.kind === 'prone' ? p.type !== 'polygon' : p.type === 'line';
         const layer = isLine
             ? L.polyline(p.points, { color: p.color || '#0072C6', weight: p.kind === 'prone' ? 10 : 6, opacity: 0.95, lineCap: 'round', lineJoin: 'round' })
-            : L.polygon(p.points, { color: p.color || '#0072C6', fillColor: p.color || '#0072C6', fillOpacity: 0.25, weight: 3 });
+            : L.polygon(p.points, { color: p.color || '#0072C6', fillColor: p.color || '#0072C6', fillOpacity: p.kind === 'prone' ? 0.35 : 0.25, weight: 3 });
         layer.addTo(map);
         const sub = p.kind === 'prone' ? 'Prone Area' + (p.ptype ? ': ' + p.ptype : '') : 'Municipality Boundary';
         layer.bindPopup(p.kind === 'prone'
             ? pronePopup(p.name, p.ptype, p.color)
             : featurePopup(p.name, sub, TOOLS[p.kind]?.icon || 'fa-map-marker-alt'));
         attachLayer(layer, p.id);
-        polygons.push({ id: p.id, kind: p.kind, name: p.name, ptype: p.ptype, color: p.color, layer });
+        polygons.push({ id: p.id, kind: p.kind, name: p.name, ptype: p.ptype, color: p.color, type: p.type, layer });
     });
     (MAPDATA.points || []).forEach(m => {
         const meta = TOOLS[m.kind] || TOOLS.evac;
@@ -390,7 +390,7 @@ function doUndo(){
         a.feature.name = a.name;
         a.feature.ptype = a.ptype;
         a.feature.color = a.color;
-        a.feature.layer.setStyle({ color: a.color });
+        applyProneStyle(a.feature.layer, a.color);
         a.feature.layer.bindPopup(pronePopup(a.name, a.ptype, a.color));
     } else if (a.type === 'boundary_replace') {
         map.removeLayer(a.newLayer);
@@ -424,6 +424,14 @@ function proneRisk(color){
 
 function pronePopup(name, type, color){
     return featurePopup(name, (type || 'Other') + ' Prone', 'fa-triangle-exclamation', proneRisk(color));
+}
+
+function applyProneStyle(layer, color){
+    if (layer instanceof L.Polygon) {
+        layer.setStyle({ color: color, fillColor: color, fillOpacity: 0.35, weight: 3 });
+        return;
+    }
+    layer.setStyle({ color: color, weight: 10, opacity: 0.95, lineCap: 'round', lineJoin: 'round' });
 }
 
 function featurePopup(name, category, icon, risk){
@@ -462,7 +470,7 @@ function setTool(tool){
         map.on('mousemove', onProneFreehandMove);
         map.on('mouseup', onProneFreehandEnd);
         document.addEventListener('mouseup', onProneFreehandEnd);
-        hint('Hold the left mouse button and trace the prone line, then release.');
+        hint('Hold the left mouse button and trace around the prone area, then release.');
         return;
     }
 
@@ -585,7 +593,7 @@ function confirmProne(){
         feature.name = name;
         feature.ptype = ptype;
         feature.color = color;
-        feature.layer.setStyle({ color: color });
+        applyProneStyle(feature.layer, color);
         feature.layer.bindPopup(pronePopup(name, ptype, color));
         pendingProneFeature = null;
         document.getElementById('proneModal').classList.remove('show');
@@ -617,12 +625,12 @@ function closeProneModal(){
 
 function addProneArea(layer, name, ptype){
     undoStack.push({ type: 'add_polygon', layer: layer, index: polygons.length });
-    layer.setStyle({ color: currentProneColor, weight: 10, opacity: 0.95, lineCap: 'round', lineJoin: 'round' });
+    applyProneStyle(layer, currentProneColor);
     layer.addTo(map);
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     layer.bindPopup(pronePopup(name, ptype, currentProneColor));
     attachLayer(layer, id);
-    polygons.push({ id: id, kind: 'prone', name: name, ptype: ptype, color: currentProneColor, layer });
+    polygons.push({ id: id, kind: 'prone', name: name, ptype: ptype, color: currentProneColor, type: layer instanceof L.Polygon ? 'polygon' : 'line', layer });
     updateStep();
     updateUndoBtn();
     resetTool();
@@ -687,13 +695,12 @@ function onProneFreehandStart(e){
     if (e.originalEvent && e.originalEvent.button !== undefined && e.originalEvent.button !== 0) return;
     proneFreehand.drawing = true;
     proneFreehand.points = [[e.latlng.lat, e.latlng.lng]];
-    proneFreehand.line = L.polyline(proneFreehand.points, {
+    proneFreehand.line = L.polygon(proneFreehand.points, {
         color: currentProneColor,
-        weight: 7,
-        opacity: 0.75,
-        dashArray: '6 4',
-        lineCap: 'round',
-        lineJoin: 'round'
+        fillColor: currentProneColor,
+        fillOpacity: 0.35,
+        weight: 3,
+        dashArray: '6 4'
     }).addTo(map);
     document.getElementById('hazardMap').style.cursor = 'crosshair';
 }
@@ -724,11 +731,11 @@ function onProneFreehandEnd(e){
     document.querySelectorAll('.hm-tool').forEach(button => button.classList.remove('active'));
     document.querySelector('.hm-prone-color.selected')?.classList.remove('drawing');
 
-    if (points.length < 2) {
-        hint('Trace a longer line and try again.');
+    if (points.length < 3) {
+        hint('Trace an area with at least three points and try again.');
         return;
     }
-    showProneModal(L.polyline(points));
+    showProneModal(L.polygon(points));
 }
 
 function showProneModal(layer){
@@ -827,7 +834,7 @@ function toggleProneEdit(){
     editProneMode = shouldEnable;
     const button = document.getElementById('editProneBtn');
     button.classList.toggle('active', editProneMode);
-    hint(editProneMode ? 'Click a prone line to change its name or color.' : '');
+    hint(editProneMode ? 'Click a prone area to change its name or color.' : '');
 }
 
 function openProneEditor(feature){
@@ -867,7 +874,7 @@ function saveMap(){
     fd.append('map_lat', map.getCenter().lat.toFixed(6));
     fd.append('map_lng', map.getCenter().lng.toFixed(6));
     fd.append('map_zoom', map.getZoom());
-    fd.append('hazard_polygons', JSON.stringify(polygons.map(p => ({ id: p.id, kind: p.kind, name: p.name, ptype: p.ptype || null, color: p.color || (p.kind === 'prone' ? currentProneColor : TOOLS[p.kind]?.color || '#000000'), type: p.kind === 'prone' || !(p.layer instanceof L.Polygon) ? 'line' : 'polygon', points: toPoints(p.layer) }))));
+    fd.append('hazard_polygons', JSON.stringify(polygons.map(p => ({ id: p.id, kind: p.kind, name: p.name, ptype: p.ptype || null, color: p.color || (p.kind === 'prone' ? currentProneColor : TOOLS[p.kind]?.color || '#000000'), type: p.layer instanceof L.Polygon ? 'polygon' : 'line', points: toPoints(p.layer) }))));
     fd.append('hazard_points', JSON.stringify(markers.map(m => ({ id: m.id, kind: m.kind, name: m.name, color: TOOLS[m.kind]?.color || '#0072C6', lat: m.layer.getLatLng().lat, lng: m.layer.getLatLng().lng }))));
 
     fetch('hazard_map_api.php', { method: 'POST', body: fd })
