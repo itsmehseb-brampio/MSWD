@@ -186,7 +186,14 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
                         <div class="hm-risk-note"><i class="fas fa-info-circle"></i> Your risk level shows on your dashboard and to the admin.</div>
                     </div>
 
-                    
+                    <div class="hm-legend">
+                        <h5>Legend</h5>
+                        <div class="lg-item"><span class="lg-poly" style="background:rgba(0,114,198,0.35);border:2px solid #0072C6;"></span> Barangay Boundary</div>
+                        <div class="lg-item"><span class="lg-line" style="background:#dc3545;"></span> Prone Area</div>
+                        <div class="lg-item"><span class="lg-ico" style="background:#0072C6;"><i class="fas fa-hospital"></i></span> Evacuation Center</div>
+                        <div class="lg-item"><span class="lg-ico" style="background:#e8710a;"><i class="fas fa-university"></i></span> Barangay Hall</div>
+                        <div class="lg-item"><span class="lg-ico" style="background:#28a745;"><i class="fas fa-school"></i></span> School</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -226,7 +233,7 @@ const TOOLS = {
     boundary: { label: 'Barangay Boundary', icon: 'fa-map-marker-alt', color: '#0072C6', shape: 'polygon' },
     boxcrop:  { label: 'Barangay Boundary', icon: 'fa-square', color: '#0072C6', shape: 'box' },
     freehand: { label: 'Barangay Boundary', icon: 'fa-pen', color: '#0072C6', shape: 'freehand' },
-    prone:    { label: 'Prone Area',         icon: 'fa-triangle-exclamation', color: '#dc3545', shape: 'choice' },
+    prone:    { label: 'Prone Area',         icon: 'fa-triangle-exclamation', color: '#dc3545', shape: 'freehand' },
     evac:     { label: 'Evacuation Center',  icon: 'fa-hospital', color: '#0072C6', shape: 'marker' },
     hall:     { label: 'Barangay Hall',      icon: 'fa-university', color: '#e8710a', shape: 'marker' },
     school:   { label: 'School',             icon: 'fa-school', color: '#28a745', shape: 'marker' }
@@ -240,7 +247,6 @@ let freehand = null;
 let dirty = false;
 let pendingProneLayer = null;
 let currentProneColor = '#dc3545'; // default red
-let currentProneMethod = '1'; // default: 1=freehand, 2=points
 
 function markerIcon(color, icon){
     return L.divIcon({
@@ -401,34 +407,44 @@ function setTool(tool){
     }
 
     if (meta.shape === 'choice') {
-        // Use the method already chosen in showProneToolPrompt (step 1 of 2)
-        const method = (currentProneMethod === '2' || currentProneMethod === 'points') ? 'points' : 'freehand';
-        // Color already chosen in showProneToolPrompt (step 2 of 2)
-        const color = currentProneColor;
-
-        if (method === 'points') {
-            // Points mode: set up polygon draw tool for click-by-click drawing
-            currentTool = 'prone';
-            drawHandler = new L.Draw.Polygon(map, {
-                allowIntersection: false,
-                showArea: true,
-                shapeOptions: { color: color, fillColor: color, fillOpacity: 0.25, weight: 3 }
-            });
-            drawHandler.enable();
-            map.once('draw:created', onCreated);
-            hint('Points mode: Click corners of the prone area, then click the first point to finish');
+        // Prompt user to choose method and color
+        const method = prompt('Choose prone area drawing method:\n1. Freehand (hold & trace)\n2. Points (click corner by corner)', '1');
+        if (method === null) { resetTool(); return; }
+        method = method.trim();
+        let colorChoice;
+        if (method === '2' || method === 'points') {
+            // Points mode - original behavior
+            colorChoice = prompt('Choose color for prone area:\n1. Red (#dc3545)\n2. Orange (#fd7e14)\n3. Yellow (#ffed45)', '1');
+            if (colorChoice === null) { resetTool(); return; }
+            colorChoice = colorChoice.trim();
+            if (colorChoice === '1') currentProneColor = '#dc3545';
+            else if (colorChoice === '2') currentProneColor = '#fd7e14';
+            else if (colorChoice === '3') currentProneColor = '#ffed4a';
+            else { alert('Invalid color choice. Defaulting to Red.'); currentProneColor = '#dc3545'; }
+            // Proceed with points mode
+            currentTool = 'prone'; // set to prone for points behavior
+            // Re-run setTool without the choice prompt
+            setTool('prone');
+            return;
         } else {
             // Freehand mode
-            currentTool = 'prone';
-            freehand = { drawing: false, pts: [], line: null };
-            map.dragging.disable();
-            map.doubleClickZoom.disable();
-            map.on('mousedown', onFreehandStart);
-            map.on('mousemove', onFreehandMove);
-            map.on('mouseup', onFreehandEnd);
-            document.addEventListener('mouseup', onFreehandEnd);
-            hint('Freehand mode: Hold mouse button and trace around the prone area, then release');
+            colorChoice = prompt('Choose color for prone area:\n1. Red (#dc3545)\n2. Orange (#fd7e14)\n3. Yellow (#ffed45)', '1');
+            if (colorChoice === null) { resetTool(); return; }
+            colorChoice = colorChoice.trim();
+            if (colorChoice === '1') { currentProneColor = '#dc3545'; }
+            else if (colorChoice === '2') { currentProneColor = '#fd7e14'; }
+            else if (colorChoice === '3') { currentProneColor = '#ffed4a'; }
+            else { alert('Invalid color choice. Defaulting to Red.'); currentProneColor = '#dc3545'; }
         }
+        hint('Freehand mode selected. Hold mouse button and trace around the prone area.');
+        // Freehand is already set up below
+        freehand = { drawing: false, pts: [], line: null };
+        map.dragging.disable();
+        map.doubleClickZoom.disable();
+        map.on('mousedown', onFreehandStart);
+        map.on('mousemove', onFreehandMove);
+        map.on('mouseup', onFreehandEnd);
+        document.addEventListener('mouseup', onFreehandEnd);
         return;
     }
 
@@ -656,47 +672,23 @@ function hint(msg){
 }
 
 function showProneToolPrompt(){
-    // No prompts/alerts - immediately setup drawing mode with hints
-    // User chooses method by clicking the prone toolbar button
-    // Color is selected via the color palette during drawing
-    currentProneMethod = '1'; // default: 1=freehand, 2=points
-    currentProneColor = '#dc3545'; // default red
-    
-    // Update color indicator
-    const btnSpan = document.querySelector('.hm-tool.prone .sw');
-    if (btnSpan) {
-        btnSpan.style.background = currentProneColor;
-        btnSpan.style.color = '#fff';
-    }
-    
-    // Update hint based on chosen method (default freehand)
-    const hintEl = document.getElementById('hmHint');
-    if (currentProneMethod === '1') {
-        hintEl.textContent = 'Freehand mode: Hold mouse button and trace around the prone area. Select color using the color palette below the map.';
-    } else {
-        hintEl.textContent = 'Points mode: Click corners of the prone area, then click the first point to finish. Select color using the color palette below the map.';
-    }
-    
-    // Proceed with tool setup
-    setTool('prone');
-    
-    // Remove the prompt for method - just proceed with drawing
-    // The method is determined by the toolbar button clicked
+    // Ask user: Freehand or Points?
+    const method = prompt('Choose prone area drawing method:\n1. Freehand (hold & trace around area)\n2. Points (click corner by corner)\n\nEnter 1 or 2:', '1');
+    if (method === null) return; // User cancelled
     method = method.trim();
     if (method !== '1' && method !== '2') {
-        // Just reset to default instead of alert
-        hint('Invalid choice. Defaulting to Freehand method.');
-        method = '1';
+        alert('Invalid choice. Please enter 1 or 2.');
+        return showProneToolPrompt(); // Recursive retry
     }
     
-    // Ask user: Choose color (step 2 of 2, but we'll let the drawing modal handle type/name)
-    const colorChoice = prompt('Step 2: Choose color for prone area:\n1. Red (#dc3545)\n2. Orange (#fd7e14)\n3. Yellow (#ffed4a)\n\nEnter 1, 2, or 3:', '1');
+    // Ask user: Choose color
+    const colorChoice = prompt('Choose color for prone area:\n1. Red (#dc3545)\n2. Orange (#fd7e14)\n3. Yellow (#ffed4a)\n\nEnter 1, 2, or 3:', '1');
     if (colorChoice === null) return; // User cancelled
     colorChoice = colorChoice.trim();
     if (colorChoice === '1') currentProneColor = '#dc3545';
     else if (colorChoice === '2') currentProneColor = '#fd7e14';
     else if (colorChoice === '3') currentProneColor = '#ffed4a';
-    else { currentProneColor = '#dc3545'; } // silently default to red
+    else { alert('Invalid color choice. Defaulting to Red.'); currentProneColor = '#dc3545'; }
     
     // Update the button's color indicator
     const btnSpan = document.querySelector('.hm-tool.prone .sw');
@@ -705,19 +697,16 @@ function showProneToolPrompt(){
         btnSpan.style.color = '#fff';
     }
     
-    // Store the chosen method and proceed with setup
-    currentProneMethod = method;
+    // Let the existing setTool logic handle the setup
+    setTool('prone');
     
-    // Update the hint based on chosen method
+    // Adjust the hint based on chosen method
     const hintEl = document.getElementById('hmHint');
     if (method === '1') {
         hintEl.textContent = 'Freehand mode: Hold mouse button and trace around the prone area, then release';
     } else {
         hintEl.textContent = 'Points mode: Click points along the prone area, then click the last point to finish';
     }
-    
-    // Proceed with tool setup
-    setTool('prone');
 }
 
 // Prone area color selection
