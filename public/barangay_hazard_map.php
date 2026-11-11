@@ -114,6 +114,8 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
 .hm-prone-panel{background:#fff;border:1px solid #eee;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:7px;}
 .hm-prone-title{font-size:0.78rem;font-weight:700;color:#444;}
 .hm-prone-help{font-size:0.68rem;color:#888;line-height:1.35;}
+.hm-prone-style-label{font-size:0.7rem;font-weight:600;color:#666;}
+.hm-prone-style{width:100%;padding:7px 9px;border:1px solid #e0e0e0;border-radius:8px;background:#fff;color:#444;font-size:0.75rem;}
 .hm-prone-colors{display:flex;flex-direction:column;gap:6px;}
 .hm-prone-color{display:flex;align-items:center;gap:8px;width:100%;padding:7px 9px;border:1px solid #e0e0e0;border-radius:8px;background:#fff;color:#444;font-size:0.75rem;font-weight:600;text-align:left;cursor:pointer;}
 .hm-prone-color:hover{background:#f5f7fa;}
@@ -201,7 +203,12 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
                     </div>
                     <div class="hm-prone-panel">
                         <div class="hm-prone-title">Prone Area</div>
-                        <div class="hm-prone-help">Choose a color to draw a prone line, or edit an existing line's name or color.</div>
+                        <div class="hm-prone-help">Choose how to draw, then select a color. You can also edit an existing line's name or color.</div>
+                        <label class="hm-prone-style-label" for="proneDrawStyle">Drawing style</label>
+                        <select class="hm-prone-style" id="proneDrawStyle">
+                            <option value="points">Points - click along the line</option>
+                            <option value="freehand">Freehand - hold and trace</option>
+                        </select>
                         <div class="hm-prone-colors" role="group" aria-label="Prone area color">
                             <button type="button" class="hm-prone-color" data-color="#ffed4a" aria-pressed="false" onclick="startProneDrawing(this)"><span class="hm-prone-swatch" style="background:#ffed4a;"></span>Yellow</button>
                             <button type="button" class="hm-prone-color" data-color="#fd7e14" aria-pressed="false" onclick="startProneDrawing(this)"><span class="hm-prone-swatch" style="background:#fd7e14;"></span>Orange</button>
@@ -269,6 +276,7 @@ let freehand = null;
 let dirty = false;
 let pendingProneLayer = null;
 let pendingProneFeature = null;
+let proneFreehand = null;
 let editProneMode = false;
 let currentProneColor = '#dc3545'; // default red
 
@@ -446,6 +454,18 @@ function setTool(tool){
         return;
     }
 
+    if (tool === 'prone' && document.getElementById('proneDrawStyle').value === 'freehand') {
+        proneFreehand = { drawing: false, points: [], line: null };
+        map.dragging.disable();
+        map.doubleClickZoom.disable();
+        map.on('mousedown', onProneFreehandStart);
+        map.on('mousemove', onProneFreehandMove);
+        map.on('mouseup', onProneFreehandEnd);
+        document.addEventListener('mouseup', onProneFreehandEnd);
+        hint('Hold the left mouse button and trace the prone line, then release.');
+        return;
+    }
+
     const meta = TOOLS[tool];
     currentTool = tool;
     if (btn) btn.classList.add('active');
@@ -507,12 +527,7 @@ function onCreated(e){
     const meta = TOOLS[tool];
 
     if (tool === 'prone') {
-        pendingProneLayer = layer;
-        document.querySelector('#proneModal h5').innerHTML = '<i class="fas fa-triangle-exclamation"></i> Add Prone Area';
-        document.getElementById('proneType').value = 'Flood';
-        document.getElementById('proneName').value = '';
-        document.getElementById('proneColor').value = currentProneColor;
-        document.getElementById('proneModal').classList.add('show');
+        showProneModal(layer);
         return;
     }
 
@@ -667,6 +682,64 @@ function onFreehandEnd(e){
     commitBoundary(layer, MAPDATA.barangay_name || 'Municipality Boundary');
 }
 
+function onProneFreehandStart(e){
+    if (!proneFreehand || proneFreehand.drawing) return;
+    if (e.originalEvent && e.originalEvent.button !== undefined && e.originalEvent.button !== 0) return;
+    proneFreehand.drawing = true;
+    proneFreehand.points = [[e.latlng.lat, e.latlng.lng]];
+    proneFreehand.line = L.polyline(proneFreehand.points, {
+        color: currentProneColor,
+        weight: 7,
+        opacity: 0.75,
+        dashArray: '6 4',
+        lineCap: 'round',
+        lineJoin: 'round'
+    }).addTo(map);
+    document.getElementById('hazardMap').style.cursor = 'crosshair';
+}
+
+function onProneFreehandMove(e){
+    if (!proneFreehand || !proneFreehand.drawing) return;
+    proneFreehand.points.push([e.latlng.lat, e.latlng.lng]);
+    proneFreehand.line.setLatLngs(proneFreehand.points);
+}
+
+function onProneFreehandEnd(e){
+    if (!proneFreehand || !proneFreehand.drawing) return;
+    const originalEvent = e.originalEvent || e;
+    if (originalEvent.button !== undefined && originalEvent.button !== 0) return;
+    if (e.latlng) proneFreehand.points.push([e.latlng.lat, e.latlng.lng]);
+
+    const points = proneFreehand.points;
+    map.off('mousedown', onProneFreehandStart);
+    map.off('mousemove', onProneFreehandMove);
+    map.off('mouseup', onProneFreehandEnd);
+    document.removeEventListener('mouseup', onProneFreehandEnd);
+    if (proneFreehand.line) map.removeLayer(proneFreehand.line);
+    proneFreehand = null;
+    currentTool = null;
+    map.dragging.enable();
+    map.doubleClickZoom.enable();
+    document.getElementById('hazardMap').style.cursor = '';
+    document.querySelectorAll('.hm-tool').forEach(button => button.classList.remove('active'));
+    document.querySelector('.hm-prone-color.selected')?.classList.remove('drawing');
+
+    if (points.length < 2) {
+        hint('Trace a longer line and try again.');
+        return;
+    }
+    showProneModal(L.polyline(points));
+}
+
+function showProneModal(layer){
+    pendingProneLayer = layer;
+    document.querySelector('#proneModal h5').innerHTML = '<i class="fas fa-triangle-exclamation"></i> Add Prone Area';
+    document.getElementById('proneType').value = 'Flood';
+    document.getElementById('proneName').value = '';
+    document.getElementById('proneColor').value = currentProneColor;
+    document.getElementById('proneModal').classList.add('show');
+}
+
 function attachLayer(layer, id){
     layer.on('click', function(){
         if (editProneMode) {
@@ -703,6 +776,17 @@ function cancelDraw(){
         document.removeEventListener('mouseup', onFreehandEnd);
         if (freehand.line) map.removeLayer(freehand.line);
         freehand = null;
+        map.dragging.enable();
+        map.doubleClickZoom.enable();
+        document.getElementById('hazardMap').style.cursor = '';
+    }
+    if (proneFreehand) {
+        map.off('mousedown', onProneFreehandStart);
+        map.off('mousemove', onProneFreehandMove);
+        map.off('mouseup', onProneFreehandEnd);
+        document.removeEventListener('mouseup', onProneFreehandEnd);
+        if (proneFreehand.line) map.removeLayer(proneFreehand.line);
+        proneFreehand = null;
         map.dragging.enable();
         map.doubleClickZoom.enable();
         document.getElementById('hazardMap').style.cursor = '';
