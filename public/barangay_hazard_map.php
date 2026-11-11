@@ -206,7 +206,7 @@ const TOOLS = {
     boundary: { label: 'Barangay Boundary', icon: 'fa-map-marker-alt', color: '#0072C6', shape: 'polygon' },
     boxcrop:  { label: 'Barangay Boundary', icon: 'fa-square', color: '#0072C6', shape: 'box' },
     freehand: { label: 'Barangay Boundary', icon: 'fa-pen', color: '#0072C6', shape: 'freehand' },
-    prone:    { label: 'Prone Area',         icon: 'fa-triangle-exclamation', color: '#dc3545', shape: 'polygon' },
+    prone:    { label: 'Prone Area',         icon: 'fa-triangle-exclamation', color: '#dc3545', shape: 'line' },
     evac:     { label: 'Evacuation Center',  icon: 'fa-hospital', color: '#0072C6', shape: 'marker' },
     hall:     { label: 'Barangay Hall',      icon: 'fa-university', color: '#e8710a', shape: 'marker' },
     school:   { label: 'School',             icon: 'fa-school', color: '#28a745', shape: 'marker' }
@@ -388,15 +388,14 @@ function setTool(tool){
             shapeOptions: { color: meta.color, fillColor: meta.color, fillOpacity: 0.25, weight: 3 }
         });
     } else if (meta.shape === 'polygon') {
-        const color = tool === 'prone' ? currentProneColor : meta.color;
         drawHandler = new L.Draw.Polygon(map, {
             allowIntersection: false,
             showArea: true,
-            shapeOptions: { color: color, fillColor: color, fillOpacity: 0.25, weight: 3 }
+            shapeOptions: { color: meta.color, fillColor: meta.color, fillOpacity: 0.25, weight: 3 }
         });
     } else if (meta.shape === 'line') {
         drawHandler = new L.Draw.Polyline(map, {
-            shapeOptions: { color: meta.color, weight: 6, opacity: 0.95 }
+            shapeOptions: { color: tool === 'prone' ? currentProneColor : meta.color, weight: 6, opacity: 0.95 }
         });
     } else {
         drawHandler = new L.Draw.Marker(map, { icon: markerIcon(meta.color, meta.icon) });
@@ -408,7 +407,7 @@ function setTool(tool){
     } else if (meta.shape === 'polygon') {
         hint('Click corner points, then click the first point to finish');
     } else if (meta.shape === 'line') {
-        hint('Click points along the prone area, then click the last point to finish');
+        hint('Click points along the prone area, then click the last point again to finish. Do not return to the start.');
     } else {
         hint('Click on the map to place the ' + meta.label.toLowerCase());
     }
@@ -485,7 +484,7 @@ function closeProneModal(){
 
 function addProneArea(layer, name, ptype){
     undoStack.push({ type: 'add_polygon', layer: layer, index: polygons.length });
-    layer.setStyle({ color: currentProneColor, fillColor: currentProneColor, fillOpacity: 0.25, weight: 3, opacity: 0.95 });
+    layer.setStyle({ color: currentProneColor, weight: 6, opacity: 0.95 });
     layer.addTo(map);
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     layer.bindPopup('<b>' + esc(name) + '</b><br><small>Prone Area: ' + esc(ptype) + '</small>');
