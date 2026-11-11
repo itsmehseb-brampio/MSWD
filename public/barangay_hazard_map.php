@@ -192,6 +192,7 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
         <select id="proneType">
             <option value="Flood">Flood</option>
             <option value="Landslide">Landslide</option>
+            <option value="Volcanic">Volcanic</option>
             <option value="Earthquake">Earthquake</option>
             <option value="Fire">Fire</option>
             <option value="Storm">Storm</option>

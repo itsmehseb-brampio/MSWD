@@ -59,12 +59,17 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
 .hm-editor{position:relative;border-radius:14px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,0.12);}
 .hm-map{width:100%;height:calc(100vh - 108px);min-height:340px;background:#e8e8e8;}
 
-.hm-legend{position:absolute;bottom:14px;right:14px;z-index:500;background:white;border-radius:10px;box-shadow:0 3px 12px rgba(0,0,0,0.15);padding:10px 14px;font-size:0.75rem;}
-.hm-legend h5{font-size:0.7rem;color:#888;text-transform:uppercase;margin-bottom:6px;letter-spacing:0.5px;}
+.hm-legend{position:absolute;bottom:14px;right:14px;z-index:500;background:white;border-radius:10px;box-shadow:0 3px 12px rgba(0,0,0,0.15);padding:12px 14px;font-size:0.75rem;max-height:calc(100% - 28px);overflow-y:auto;min-width:210px;}
+.hm-legend h5{font-size:0.7rem;color:#888;text-transform:uppercase;margin-bottom:8px;letter-spacing:0.5px;}
 .hm-legend .lg-item{display:flex;align-items:center;gap:8px;margin:3px 0;color:#555;}
 .hm-legend .lg-ico{width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;font-size:7px;color:#fff;}
 .hm-legend .lg-poly{width:18px;height:10px;border-radius:2px;display:inline-block;}
 .hm-legend .lg-line{width:22px;height:4px;border-radius:2px;display:inline-block;}
+.hm-legend-divider{border:0;border-top:1px solid #eee;margin:9px 0;}
+.hm-risk-swatch{width:18px;height:4px;border-radius:4px;display:inline-block;flex:none;}
+.hm-prone-filter{display:flex;align-items:center;gap:7px;margin:6px 0;color:#555;cursor:pointer;}
+.hm-prone-filter input{accent-color:#0072C6;}
+.hm-prone-filter-title{font-size:0.68rem;color:#777;font-weight:700;margin:7px 0 5px;}
 
 .hm-placeholder{width:100%;height:calc(100vh - 108px);min-height:340px;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 4px 18px rgba(0,0,0,0.12);display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;position:relative;}
 .hm-placeholder img{max-width:100%;max-height:100%;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.12);}
@@ -113,10 +118,15 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
                 <div class="hm-legend">
                     <h5>Legend</h5>
                     <div class="lg-item"><span class="lg-poly" style="background:rgba(0,114,198,0.35);border:2px solid #0072C6;"></span> Barangay Boundary</div>
-                    <div class="lg-item"><span class="lg-line" style="background:#dc3545;"></span> Prone Area</div>
+                    <div class="lg-item"><span class="hm-risk-swatch" style="background:#ffed4a;"></span> Prone area — Low risk</div>
+                    <div class="lg-item"><span class="hm-risk-swatch" style="background:#fd7e14;"></span> Prone area — Medium risk</div>
+                    <div class="lg-item"><span class="hm-risk-swatch" style="background:#dc3545;"></span> Prone area — High / Critical risk</div>
                     <div class="lg-item"><span class="lg-ico" style="background:#0072C6;"><i class="fas fa-hospital"></i></span> Evacuation Center</div>
                     <div class="lg-item"><span class="lg-ico" style="background:#e8710a;"><i class="fas fa-university"></i></span> Barangay Hall</div>
                     <div class="lg-item"><span class="lg-ico" style="background:#28a745;"><i class="fas fa-school"></i></span> School</div>
+                    <hr class="hm-legend-divider">
+                    <div class="hm-prone-filter-title">Show prone areas</div>
+                    <div id="proneFilters" aria-label="Filter prone areas by type"></div>
                 </div>
             </div>
             <?php elseif (!empty($hazard_image)): ?>
@@ -148,6 +158,8 @@ const VIEW_META = {
 };
 
 let map;
+const PRONE_TYPES = ['Flood', 'Storm', 'Landslide', 'Volcanic', 'Earthquake', 'Fire', 'Erosion', 'Other'];
+const proneLayers = [];
 
 function markerIcon(color, icon){
     return L.divIcon({
@@ -171,6 +183,7 @@ function initMap(){
     (MAPDATA.polygons || []).forEach(p => {
         if (!p.points || !p.points.length) return;
         const meta = VIEW_META[p.kind] || VIEW_META.prone;
+        const proneType = normalizeProneType(p.ptype);
         const layer = (p.kind === 'prone' || p.type === 'line')
             ? L.polyline(p.points, { color: p.color || meta.color, weight: p.kind === 'prone' ? 10 : 6, opacity: 0.95, lineCap: 'round', lineJoin: 'round' })
             : L.polygon(p.points, { color: p.color || meta.color, fillColor: p.color || meta.color, fillOpacity: 0.25, weight: 3 });
@@ -179,6 +192,7 @@ function initMap(){
         layer.bindPopup(p.kind === 'prone'
             ? pronePopup(p.name, p.ptype, p.color)
             : featurePopup(p.name, sub, meta.icon));
+        if (p.kind === 'prone') proneLayers.push({ type: proneType, layer: layer });
     });
     (MAPDATA.points || []).forEach(m => {
         const meta = VIEW_META[m.kind] || VIEW_META.evac;
@@ -187,12 +201,43 @@ function initMap(){
         layer.bindPopup(featurePopup(m.name, meta.label, meta.icon));
     });
 
+    initProneFilters();
+
     const boundary = (MAPDATA.polygons || []).find(p => p.kind === 'boundary' && p.points && p.points.length);
     if (boundary) {
         const b = L.polygon(boundary.points).getBounds();
         if (b.isValid()) map.fitBounds(b, { padding: [40, 40] });
         map.on('zoomend', keepCentered);
     }
+}
+
+function normalizeProneType(type){
+    const value = String(type || 'Other').trim();
+    return PRONE_TYPES.find(option => option.toLowerCase() === value.toLowerCase()) || value || 'Other';
+}
+
+function initProneFilters(){
+    const container = document.getElementById('proneFilters');
+    const types = [...new Set([...PRONE_TYPES, ...proneLayers.map(item => item.type)])];
+    types.forEach(type => {
+        const label = document.createElement('label');
+        label.className = 'hm-prone-filter';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = true;
+        checkbox.dataset.proneType = type;
+        checkbox.addEventListener('change', function(){
+            proneLayers.forEach(item => {
+                if (item.type !== type) return;
+                if (checkbox.checked) item.layer.addTo(map);
+                else map.removeLayer(item.layer);
+            });
+        });
+        const text = document.createElement('span');
+        text.textContent = type;
+        label.append(checkbox, text);
+        container.appendChild(label);
+    });
 }
 
 function keepCentered(){
