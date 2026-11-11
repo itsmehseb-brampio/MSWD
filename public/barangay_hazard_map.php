@@ -196,11 +196,12 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
                         <button type="button" class="hm-tool" data-tool="school" onclick="setTool('school')"><i class="fas fa-school"></i> School <span class="sw" style="background:#28a745;"></span></button>
                         <div class="hm-t-label" style="margin-top:4px;">Edit</div>
                         <button type="button" class="hm-tool undo" id="undoBtn" onclick="doUndo()"><i class="fas fa-undo"></i> Undo <span class="hm-undocnt" id="undoCnt">0</span></button>
+                        <button type="button" class="hm-tool" id="editProneBtn" onclick="toggleProneEdit()"><i class="fas fa-pen-to-square"></i> Edit Prone Area</button>
                         <button type="button" class="hm-tool delete" data-tool="delete" onclick="setTool('delete')"><i class="fas fa-trash-alt"></i> Delete</button>
                     </div>
                     <div class="hm-prone-panel">
                         <div class="hm-prone-title">Prone Area</div>
-                        <div class="hm-prone-help">Choose a color, then click map corners to draw an area.</div>
+                        <div class="hm-prone-help">Choose a color to draw a prone line, or edit an existing line's name or color.</div>
                         <div class="hm-prone-colors" role="group" aria-label="Prone area color">
                             <button type="button" class="hm-prone-color" data-color="#ffed4a" aria-pressed="false" onclick="startProneDrawing(this)"><span class="hm-prone-swatch" style="background:#ffed4a;"></span>Yellow</button>
                             <button type="button" class="hm-prone-color" data-color="#fd7e14" aria-pressed="false" onclick="startProneDrawing(this)"><span class="hm-prone-swatch" style="background:#fd7e14;"></span>Orange</button>
@@ -231,9 +232,15 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
         </select>
         <label>Name</label>
         <input type="text" id="proneName" placeholder="e.g. River flood zone" maxlength="60">
+        <label>Line color</label>
+        <select id="proneColor">
+            <option value="#ffed4a">Yellow - Low risk</option>
+            <option value="#fd7e14">Orange - Medium risk</option>
+            <option value="#dc3545">Red - High risk</option>
+        </select>
         <div class="hm-modal-actions">
             <button type="button" class="hm-btn-cancel" onclick="closeProneModal()">Cancel</button>
-            <button type="button" class="hm-btn-add" onclick="confirmProne()"><i class="fas fa-plus"></i> Add</button>
+            <button type="button" class="hm-btn-add" id="proneSubmitBtn" onclick="confirmProne()"><i class="fas fa-plus"></i> Add</button>
         </div>
     </div>
 </div>
@@ -261,6 +268,8 @@ let undoStack = [];
 let freehand = null;
 let dirty = false;
 let pendingProneLayer = null;
+let pendingProneFeature = null;
+let editProneMode = false;
 let currentProneColor = '#dc3545'; // default red
 
 function markerIcon(color, icon){
@@ -340,6 +349,7 @@ function updateStep(){
         b.classList.toggle('locked', !hasB);
     });
     document.querySelectorAll('.hm-prone-color').forEach(b => b.disabled = !hasB);
+    document.getElementById('editProneBtn').disabled = !polygons.some(p => p.kind === 'prone');
     document.getElementById('saveBtn').disabled = !hasB;
 }
 
@@ -368,6 +378,12 @@ function doUndo(){
         a.layer.addTo(map);
         attachLayer(a.layer, a.obj.id);
         markers.splice(a.index, 0, a.obj);
+    } else if (a.type === 'edit_prone') {
+        a.feature.name = a.name;
+        a.feature.ptype = a.ptype;
+        a.feature.color = a.color;
+        a.feature.layer.setStyle({ color: a.color });
+        a.feature.layer.bindPopup(pronePopup(a.name, a.ptype, a.color));
     } else if (a.type === 'boundary_replace') {
         map.removeLayer(a.newLayer);
         polygons = polygons.filter(p => p.layer !== a.newLayer);
@@ -416,6 +432,7 @@ function featurePopup(name, category, icon, risk){
 
 function setTool(tool){
     cancelDraw();
+    editProneMode = false;
 
     const btn = document.querySelector('.hm-tool[data-tool="' + tool + '"]');
     const wasActive = btn && btn.classList.contains('active');
@@ -491,8 +508,10 @@ function onCreated(e){
 
     if (tool === 'prone') {
         pendingProneLayer = layer;
+        document.querySelector('#proneModal h5').innerHTML = '<i class="fas fa-triangle-exclamation"></i> Add Prone Area';
         document.getElementById('proneType').value = 'Flood';
         document.getElementById('proneName').value = '';
+        document.getElementById('proneColor').value = currentProneColor;
         document.getElementById('proneModal').classList.add('show');
         return;
     }
@@ -532,6 +551,38 @@ function onCreated(e){
 }
 
 function confirmProne(){
+    if (pendingProneFeature) {
+        const feature = pendingProneFeature;
+        const name = document.getElementById('proneName').value.trim();
+        const ptype = document.getElementById('proneType').value;
+        const color = document.getElementById('proneColor').value;
+        if (!name) {
+            document.getElementById('proneName').focus();
+            return;
+        }
+        undoStack.push({
+            type: 'edit_prone',
+            feature: feature,
+            name: feature.name,
+            ptype: feature.ptype,
+            color: feature.color
+        });
+        feature.name = name;
+        feature.ptype = ptype;
+        feature.color = color;
+        feature.layer.setStyle({ color: color });
+        feature.layer.bindPopup(pronePopup(name, ptype, color));
+        pendingProneFeature = null;
+        document.getElementById('proneModal').classList.remove('show');
+        document.getElementById('proneSubmitBtn').innerHTML = '<i class="fas fa-plus"></i> Add';
+        editProneMode = false;
+        document.getElementById('editProneBtn').classList.remove('active');
+        updateUndoBtn();
+        dirty = true;
+        hint('Prone area updated. Click Save Hazard Map to keep your changes.');
+        return;
+    }
+
     const layer = pendingProneLayer;
     if (!layer) return;
     const ptype = document.getElementById('proneType').value;
@@ -543,7 +594,9 @@ function confirmProne(){
 
 function closeProneModal(){
     if (pendingProneLayer) { map.removeLayer(pendingProneLayer); pendingProneLayer = null; }
+    pendingProneFeature = null;
     document.getElementById('proneModal').classList.remove('show');
+    document.getElementById('proneSubmitBtn').innerHTML = '<i class="fas fa-plus"></i> Add';
     resetTool();
 }
 
@@ -616,6 +669,11 @@ function onFreehandEnd(e){
 
 function attachLayer(layer, id){
     layer.on('click', function(){
+        if (editProneMode) {
+            const feature = polygons.find(p => p.id === id && p.kind === 'prone');
+            if (feature) openProneEditor(feature);
+            return;
+        }
         if (!deleteMode) return;
         const pi = polygons.findIndex(p => p.id === id);
         if (pi >= 0) {
@@ -654,6 +712,7 @@ function cancelDraw(){
     deleteMode = false;
     document.querySelectorAll('.hm-prone-color').forEach(b => b.classList.remove('drawing'));
     document.querySelectorAll('.hm-tool').forEach(b => b.classList.remove('active'));
+    editProneMode = false;
     hint('');
 }
 
@@ -676,6 +735,25 @@ function startProneDrawing(button){
         option.setAttribute('aria-pressed', selected ? 'true' : 'false');
     });
     setTool('prone');
+}
+
+function toggleProneEdit(){
+    const shouldEnable = !editProneMode;
+    cancelDraw();
+    editProneMode = shouldEnable;
+    const button = document.getElementById('editProneBtn');
+    button.classList.toggle('active', editProneMode);
+    hint(editProneMode ? 'Click a prone line to change its name or color.' : '');
+}
+
+function openProneEditor(feature){
+    pendingProneFeature = feature;
+    document.getElementById('proneType').value = feature.ptype || 'Other';
+    document.getElementById('proneName').value = feature.name || '';
+    document.getElementById('proneColor').value = feature.color || '#dc3545';
+    document.querySelector('#proneModal h5').innerHTML = '<i class="fas fa-pen-to-square"></i> Edit Prone Area';
+    document.getElementById('proneSubmitBtn').innerHTML = '<i class="fas fa-save"></i> Save Changes';
+    document.getElementById('proneModal').classList.add('show');
 }
 
 function showToast(msg){
