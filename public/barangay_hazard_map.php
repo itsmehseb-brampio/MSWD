@@ -410,7 +410,7 @@ function initProneFilters(){
     const types = [...new Set([...PRONE_TYPES, ...polygons.filter(p => p.kind === 'prone').map(p => normalizeProneType(p.ptype))])];
     container.replaceChildren();
     types.forEach(type => {
-        if (!proneTypeVisibility.has(type)) proneTypeVisibility.set(type, true);
+        if (!proneTypeVisibility.has(type)) proneTypeVisibility.set(type, type !== 'Volcanic');
         const label = document.createElement('label');
         label.className = 'hm-prone-filter';
         const checkbox = document.createElement('input');

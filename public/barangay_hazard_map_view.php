@@ -272,8 +272,13 @@ function initProneFilters(){
         label.className = 'hm-prone-filter';
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.checked = true;
+        checkbox.checked = type !== 'Volcanic';
         checkbox.dataset.proneType = type;
+        if (!checkbox.checked) {
+            proneLayers.forEach(item => {
+                if (item.type === type) map.removeLayer(item.layer);
+            });
+        }
         checkbox.addEventListener('change', function(){
             proneLayers.forEach(item => {
                 if (item.type !== type) return;
