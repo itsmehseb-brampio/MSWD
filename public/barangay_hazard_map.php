@@ -9,14 +9,13 @@ require 'db.php';
 $barangay_id = intval($_SESSION['barangay_id']);
 $barangay_name = $_SESSION['barangay_name'] ?? '';
 
-$detail = $conn->query("SELECT map_lat, map_lng, map_zoom, hazard_polygons, hazard_points, risk_level, hazard_map_updated_at FROM barangay_details WHERE barangay_id = $barangay_id")->fetch_assoc();
+$detail = $conn->query("SELECT map_lat, map_lng, map_zoom, hazard_polygons, hazard_points, hazard_map_updated_at FROM barangay_details WHERE barangay_id = $barangay_id")->fetch_assoc();
 
 $mapData = [
     'lat' => null, 'lng' => null, 'zoom' => 14,
-    'polygons' => [], 'points' => [], 'risk_level' => 'Low'
+    'polygons' => [], 'points' => []
 ];
 if ($detail) {
-    $mapData['risk_level'] = $detail['risk_level'] ?? 'Low';
     if ($detail['map_lat'] !== null) {
         $mapData['lat'] = floatval($detail['map_lat']);
         $mapData['lng'] = floatval($detail['map_lng']);
@@ -84,25 +83,6 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
 .hm-tool .sw{width:12px;height:12px;border-radius:3px;margin-left:auto;flex-shrink:0;}
 
 .hm-hint{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:800;background:rgba(0,0,0,0.75);color:#fff;font-size:0.78rem;padding:8px 18px;border-radius:20px;display:none;white-space:nowrap;pointer-events:none;}
-
-.hm-legend{margin-top:auto;background:#f9fafb;border-radius:10px;border:1px solid #eee;padding:10px 14px;font-size:0.75rem;}
-.hm-risk{background:#fff;border:1px solid #eee;border-radius:10px;padding:10px 12px;}
-.hm-risk .hm-t-label{margin-bottom:6px;}
-.hm-risk-opts{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
-.hm-risk-opt{padding:7px 6px;border-radius:8px;border:1.5px solid #e0e0e0;background:#fff;font-size:0.72rem;font-weight:700;cursor:pointer;color:#555;transition:all 0.2s;font-family:'Segoe UI',sans-serif;}
-.hm-risk-opt:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(0,0,0,0.12);}
-.hm-risk-opt.r-low.selected{background:#28a745;border-color:#28a745;color:#fff;}
-.hm-risk-opt.r-medium.selected{background:#fd7e14;border-color:#fd7e14;color:#fff;}
-.hm-risk-opt.r-high.selected{background:#dc3545;border-color:#dc3545;color:#fff;}
-.hm-risk-opt.r-critical.selected{background:#7b1a1a;border-color:#7b1a1a;color:#fff;animation:hmRiskPulse 1.6s infinite;}
-@keyframes hmRiskPulse{0%,100%{opacity:1;}50%{opacity:.6;}}
-.hm-risk-note{font-size:0.66rem;color:#999;margin-top:6px;line-height:1.3;}
-.hm-risk-note i{color:#0072C6;}
-.hm-legend h5{font-size:0.7rem;color:#888;text-transform:uppercase;margin-bottom:6px;letter-spacing:0.5px;}
-.hm-legend .lg-item{display:flex;align-items:center;gap:8px;margin:3px 0;color:#555;}
-.hm-legend .lg-ico{width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;font-size:7px;color:#fff;}
-.hm-legend .lg-poly{width:18px;height:10px;border-radius:2px;display:inline-block;}
-.hm-legend .lg-line{width:22px;height:4px;border-radius:2px;display:inline-block;}
 
 .hm-toast{position:fixed;top:20px;right:20px;background:#28a745;color:white;padding:13px 22px;border-radius:10px;box-shadow:0 4px 15px rgba(0,0,0,0.2);z-index:3000;display:none;align-items:center;gap:10px;font-weight:600;font-size:0.85rem;}
 .hm-toast.show{display:flex;animation:hmIn 0.3s ease;}
@@ -173,26 +153,6 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
                         <div class="hm-t-label" style="margin-top:4px;">Edit</div>
                         <button type="button" class="hm-tool undo" id="undoBtn" onclick="doUndo()"><i class="fas fa-undo"></i> Undo <span class="hm-undocnt" id="undoCnt">0</span></button>
                         <button type="button" class="hm-tool delete" data-tool="delete" onclick="setTool('delete')"><i class="fas fa-trash-alt"></i> Delete</button>
-                    </div>
-
-                    <div class="hm-risk">
-                        <div class="hm-t-label"><i class="fas fa-shield-alt"></i> Barangay Risk Level</div>
-                        <div class="hm-risk-opts">
-                            <button type="button" class="hm-risk-opt r-low" data-risk="Low">Low</button>
-                            <button type="button" class="hm-risk-opt r-medium" data-risk="Medium">Medium</button>
-                            <button type="button" class="hm-risk-opt r-high" data-risk="High">High</button>
-                            <button type="button" class="hm-risk-opt r-critical" data-risk="Critical">Critical</button>
-                        </div>
-                        <div class="hm-risk-note"><i class="fas fa-info-circle"></i> Your risk level shows on your dashboard and to the admin.</div>
-                    </div>
-
-                    <div class="hm-legend">
-                        <h5>Legend</h5>
-                        <div class="lg-item"><span class="lg-poly" style="background:rgba(0,114,198,0.35);border:2px solid #0072C6;"></span> Barangay Boundary</div>
-                        <div class="lg-item"><span class="lg-line" style="background:#dc3545;"></span> Prone Area</div>
-                        <div class="lg-item"><span class="lg-ico" style="background:#0072C6;"><i class="fas fa-hospital"></i></span> Evacuation Center</div>
-                        <div class="lg-item"><span class="lg-ico" style="background:#e8710a;"><i class="fas fa-university"></i></span> Barangay Hall</div>
-                        <div class="lg-item"><span class="lg-ico" style="background:#28a745;"><i class="fas fa-school"></i></span> School</div>
                     </div>
                 </div>
             </div>
@@ -740,35 +700,6 @@ function showToast(msg){
     setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-let currentRisk = MAPDATA.risk_level || 'Low';
-function initRisk(){
-    document.querySelectorAll('.hm-risk-opt').forEach(b => {
-        b.classList.toggle('selected', b.dataset.risk === currentRisk);
-        b.addEventListener('click', function(){
-            if (b.dataset.risk === currentRisk) return;
-            setRisk(b.dataset.risk);
-        });
-    });
-}
-function setRisk(r){
-    const prev = currentRisk;
-    currentRisk = r;
-    document.querySelectorAll('.hm-risk-opt').forEach(b => b.classList.toggle('selected', b.dataset.risk === currentRisk));
-    const fd = new FormData();
-    fd.append('action', 'set_risk');
-    fd.append('risk_level', r);
-    fetch('hazard_map_api.php', { method: 'POST', body: fd })
-        .then(res => res.json())
-        .then(res => {
-            if (!res.success) {
-                currentRisk = prev;
-                document.querySelectorAll('.hm-risk-opt').forEach(b => b.classList.toggle('selected', b.dataset.risk === currentRisk));
-                alert('Failed to update risk level: ' + (res.error || 'Unknown error'));
-            }
-        })
-        .catch(() => { currentRisk = prev; document.querySelectorAll('.hm-risk-opt').forEach(b => b.classList.toggle('selected', b.dataset.risk === currentRisk)); alert('Failed to update risk level.'); });
-}
-
 function toPoints(layer){
     if (layer instanceof L.Polygon) {
         const ll = layer.getLatLngs();
@@ -826,7 +757,6 @@ window.addEventListener('beforeunload', function(e){
     e.returnValue = '';
 });
 document.addEventListener('DOMContentLoaded', initMap);
-document.addEventListener('DOMContentLoaded', initRisk);
 </script>
 </body>
 </html>
