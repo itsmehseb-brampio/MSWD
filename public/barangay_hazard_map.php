@@ -656,9 +656,32 @@ function hint(msg){
 }
 
 function showProneToolPrompt(){
-    // Ask user: Freehand or Points? (step 1 of 2)
-    const method = prompt('Step 1: Choose drawing method:\n1. Freehand (hold & trace around area)\n2. Points (click corner by corner)\n\nEnter 1 or 2:', '1');
-    if (method === null) return; // User cancelled
+    // No prompts/alerts - immediately setup drawing mode with hints
+    // User chooses method by clicking the prone toolbar button
+    // Color is selected via the color palette during drawing
+    currentProneMethod = '1'; // default: 1=freehand, 2=points
+    currentProneColor = '#dc3545'; // default red
+    
+    // Update color indicator
+    const btnSpan = document.querySelector('.hm-tool.prone .sw');
+    if (btnSpan) {
+        btnSpan.style.background = currentProneColor;
+        btnSpan.style.color = '#fff';
+    }
+    
+    // Update hint based on chosen method (default freehand)
+    const hintEl = document.getElementById('hmHint');
+    if (currentProneMethod === '1') {
+        hintEl.textContent = 'Freehand mode: Hold mouse button and trace around the prone area. Select color using the color palette below the map.';
+    } else {
+        hintEl.textContent = 'Points mode: Click corners of the prone area, then click the first point to finish. Select color using the color palette below the map.';
+    }
+    
+    // Proceed with tool setup
+    setTool('prone');
+    
+    // Remove the prompt for method - just proceed with drawing
+    // The method is determined by the toolbar button clicked
     method = method.trim();
     if (method !== '1' && method !== '2') {
         // Just reset to default instead of alert
