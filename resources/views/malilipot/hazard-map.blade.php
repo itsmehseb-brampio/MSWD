@@ -517,10 +517,27 @@ function renderLayers() {
     layers.features.clearLayers();
     MAPDATA.polygons.forEach(drawFeature);
     MAPDATA.points.forEach(drawFeature);
+    orderProneLayersByRisk();
     refreshBoundaryMask();
     attachLayerEvents();
     applyViewLock(hasBoundary);
     updateStep();
+}
+
+function orderProneLayersByRisk() {
+    const priority = { low: 1, medium: 2, high: 3, critical: 3 };
+    const colorRisk = { '#ffed4a': 'low', '#fd7e14': 'medium', '#dc3545': 'high' };
+    const proneLayers = [];
+    layers.features.eachLayer(function (layer) {
+        const feature = layer.feature;
+        if (feature && feature.kind === 'prone') {
+            const risk = String(colorRisk[String(feature.color || '').toLowerCase()] || feature.risk || 'high').toLowerCase();
+            proneLayers.push({ layer: layer, priority: priority[risk] || 3 });
+        }
+    });
+    proneLayers
+        .sort(function (a, b) { return a.priority - b.priority; })
+        .forEach(function (item) { item.layer.bringToFront(); });
 }
 
 function setStatus(msg, ok) {
@@ -803,6 +820,7 @@ function commitProneArea(points) {
     };
     MAPDATA.polygons.push(feat);
     drawFeature(feat);
+    orderProneLayersByRisk();
     setStatus('Prone area added - Risk: ' + risk + '.', true);
     updateProneCount();
     cancelDrawProne();

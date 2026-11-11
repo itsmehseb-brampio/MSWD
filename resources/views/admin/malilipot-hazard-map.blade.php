@@ -70,6 +70,7 @@ function popup(title, detail) {
 }
 
 const features = L.featureGroup();
+const proneLayers = [];
 (MAPDATA.polygons || []).forEach(function (polygon) {
     const color = polygon.color || '#0072C6';
     if (polygon.ptype === 'circle' && polygon.center) {
@@ -90,6 +91,7 @@ const features = L.featureGroup();
             : (polygon.risk || '');
         layer.bindPopup(popup(polygon.name || 'Hazard zone', detail));
         layer.addTo(features);
+        if (polygon.kind === 'prone') proneLayers.push({ layer: layer, color: polygon.color, risk: polygon.risk });
     }
 });
 
@@ -106,6 +108,7 @@ const features = L.featureGroup();
 });
 
 features.addTo(map);
+orderProneLayersByRisk();
 const boundary = MAPDATA.polygons.find(function (polygon) {
     return polygon.kind === 'boundary' && Array.isArray(polygon.points) && polygon.points.length;
 });
@@ -122,6 +125,21 @@ if (boundary) {
     map.fitBounds(L.polygon(boundary.points).getBounds(), { padding: [40, 40] });
 } else if (features.getLayers().length) {
     map.fitBounds(features.getBounds().pad(0.15), { maxZoom: 16 });
+}
+
+function orderProneLayersByRisk() {
+    const priority = { low: 1, medium: 2, high: 3, critical: 3 };
+    const colorRisk = { '#ffed4a': 'low', '#fd7e14': 'medium', '#dc3545': 'high' };
+    proneLayers
+        .slice()
+        .sort(function (a, b) {
+            const riskA = String(colorRisk[String(a.color || '').toLowerCase()] || a.risk || 'high').toLowerCase();
+            const riskB = String(colorRisk[String(b.color || '').toLowerCase()] || b.risk || 'high').toLowerCase();
+            return (priority[riskA] || 3) - (priority[riskB] || 3);
+        })
+        .forEach(function (item) {
+            if (map.hasLayer(item.layer)) item.layer.bringToFront();
+        });
 }
 </script>
 @endpush

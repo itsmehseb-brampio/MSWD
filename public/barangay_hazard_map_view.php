@@ -203,7 +203,7 @@ function initMap(){
         layer.bindPopup(p.kind === 'prone'
             ? pronePopup(p.name, p.ptype, p.color)
             : featurePopup(p.name, sub, meta.icon));
-        if (p.kind === 'prone') proneLayers.push({ type: proneType, layer: layer });
+        if (p.kind === 'prone') proneLayers.push({ type: proneType, layer: layer, color: p.color, risk: p.risk });
     });
     (MAPDATA.points || []).forEach(m => {
         const meta = VIEW_META[m.kind] || VIEW_META.evac;
@@ -212,6 +212,7 @@ function initMap(){
         layer.bindPopup(featurePopup(m.name, meta.label, meta.icon));
     });
 
+    orderProneLayersByRisk();
     initProneFilters();
 
     const boundary = (MAPDATA.polygons || []).find(p => p.kind === 'boundary' && p.points && p.points.length);
@@ -256,12 +257,27 @@ function initProneFilters(){
                 if (checkbox.checked) item.layer.addTo(map);
                 else map.removeLayer(item.layer);
             });
+            orderProneLayersByRisk();
         });
         const text = document.createElement('span');
         text.textContent = type;
         label.append(checkbox, text);
         container.appendChild(label);
     });
+}
+
+function orderProneLayersByRisk(){
+    const priority = { low: 1, medium: 2, high: 3, critical: 3 };
+    proneLayers
+        .slice()
+        .sort((a, b) => {
+            const riskA = String(proneRisk(a.color) || a.risk || 'High').toLowerCase();
+            const riskB = String(proneRisk(b.color) || b.risk || 'High').toLowerCase();
+            return (priority[riskA] || 3) - (priority[riskB] || 3);
+        })
+        .forEach(item => {
+            if (map.hasLayer(item.layer)) item.layer.bringToFront();
+        });
 }
 
 function keepCentered(){

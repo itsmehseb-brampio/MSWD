@@ -210,6 +210,7 @@ function popup(title, detail) {
 }
 
 let group = L.featureGroup();
+const proneLayers = [];
 (MAPDATA.polygons || []).forEach(function (p) {
     const color = safeColor(p.color, '#0072C6');
     let layer = null;
@@ -235,6 +236,7 @@ let group = L.featureGroup();
             : (p.risk || p.barangay_name || '');
         layer.bindPopup(popup(p.name || 'Hazard zone', detail));
         layer.addTo(group);
+        if (p.kind === 'prone') proneLayers.push({ layer: layer, color: p.color, risk: p.risk });
     }
 });
 (MAPDATA.points || []).forEach(function (pt) {
@@ -247,6 +249,7 @@ let group = L.featureGroup();
 });
 
 group.addTo(map);
+orderProneLayersByRisk();
 const boundary = (MAPDATA.polygons || []).find(function (p) { return p.kind === 'boundary' && Array.isArray(p.points) && p.points.length; });
 if (boundary) {
     const worldRing = [[-85, -180], [-85, 180], [85, 180], [85, -180]];
@@ -261,6 +264,21 @@ if (boundary) {
     map.fitBounds(L.polygon(boundary.points).getBounds(), { padding: [40, 40] });
 } else if (group.getLayers().length) {
     map.fitBounds(group.getBounds().pad(0.15), { maxZoom: 16 });
+}
+
+function orderProneLayersByRisk() {
+    const priority = { low: 1, medium: 2, high: 3, critical: 3 };
+    const colorRisk = { '#ffed4a': 'low', '#fd7e14': 'medium', '#dc3545': 'high' };
+    proneLayers
+        .slice()
+        .sort(function (a, b) {
+            const riskA = String(colorRisk[String(a.color || '').toLowerCase()] || a.risk || 'high').toLowerCase();
+            const riskB = String(colorRisk[String(b.color || '').toLowerCase()] || b.risk || 'high').toLowerCase();
+            return (priority[riskA] || 3) - (priority[riskB] || 3);
+        })
+        .forEach(function (item) {
+            if (map.hasLayer(item.layer)) item.layer.bringToFront();
+        });
 }
 </script>
 @endpush

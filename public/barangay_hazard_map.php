@@ -123,6 +123,12 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
 .hm-prone-color.drawing{background:#eaf4fb;}
 .hm-prone-color:disabled{opacity:0.45;cursor:not-allowed;}
 .hm-prone-swatch{width:14px;height:14px;border:1px solid rgba(0,0,0,0.15);border-radius:50%;flex:none;}
+.hm-prone-filter-title{font-size:0.68rem;color:#666;font-weight:700;margin-top:3px;}
+.hm-prone-risk-legend{display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:0.65rem;color:#666;}
+.hm-prone-risk-legend span{display:flex;align-items:center;gap:5px;}
+.hm-prone-risk-legend i{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none;}
+.hm-prone-filter{display:flex;align-items:center;gap:7px;margin:3px 0;color:#444;font-size:0.72rem;cursor:pointer;}
+.hm-prone-filter input{width:15px;height:15px;accent-color:#0072C6;flex:none;}
 
 .hm-hint{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:800;background:rgba(0,0,0,0.75);color:#fff;font-size:0.78rem;padding:8px 18px;border-radius:20px;display:none;white-space:nowrap;pointer-events:none;}
 
@@ -203,7 +209,7 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
                     </div>
                     <div class="hm-prone-panel">
                         <div class="hm-prone-title">Prone Area</div>
-                        <div class="hm-prone-help">Choose how to draw, then select a color. You can also edit an existing line's name or color.</div>
+                        <div class="hm-prone-help">Choose how to draw, then select a color. You can also edit an existing prone area's name or color.</div>
                         <label class="hm-prone-style-label" for="proneDrawStyle">Drawing style</label>
                         <select class="hm-prone-style" id="proneDrawStyle">
                             <option value="points">Points - click along the line</option>
@@ -214,6 +220,14 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
                             <button type="button" class="hm-prone-color" data-color="#fd7e14" aria-pressed="false" onclick="startProneDrawing(this)"><span class="hm-prone-swatch" style="background:#fd7e14;"></span>Orange</button>
                             <button type="button" class="hm-prone-color selected" data-color="#dc3545" aria-pressed="true" onclick="startProneDrawing(this)"><span class="hm-prone-swatch" style="background:#dc3545;"></span>Red</button>
                         </div>
+                        <div class="hm-prone-filter-title">Legend · overlap priority</div>
+                        <div class="hm-prone-risk-legend" aria-label="Prone area risk colors">
+                            <span><i style="background:#ffed4a;"></i>Low</span>
+                            <span><i style="background:#fd7e14;"></i>Medium</span>
+                            <span><i style="background:#dc3545;"></i>High / Critical</span>
+                        </div>
+                        <div class="hm-prone-filter-title">Show prone areas</div>
+                        <div id="editProneFilters" aria-label="Filter prone areas by type"></div>
                     </div>
                 </div>
             </div>
@@ -280,6 +294,8 @@ let proneFreehand = null;
 let editProneMode = false;
 let currentProneColor = '#dc3545'; // default red
 let boundaryMask = null;
+const PRONE_TYPES = ['Flood', 'Storm', 'Landslide', 'Volcanic', 'Earthquake', 'Fire', 'Erosion', 'Other'];
+const proneTypeVisibility = new Map();
 
 function markerIcon(color, icon){
     return L.divIcon({
@@ -333,9 +349,58 @@ function loadLayers(){
         applyViewLock();
     }
 
+    initProneFilters();
+    orderProneLayersByRisk();
     setLastSaved(MAPDATA.updated_at || null);
     updateStep();
     updateUndoBtn();
+}
+
+function normalizeProneType(type){
+    const value = String(type || 'Other').trim();
+    return PRONE_TYPES.find(option => option.toLowerCase() === value.toLowerCase()) || value || 'Other';
+}
+
+function initProneFilters(){
+    const container = document.getElementById('editProneFilters');
+    const types = [...new Set([...PRONE_TYPES, ...polygons.filter(p => p.kind === 'prone').map(p => normalizeProneType(p.ptype))])];
+    container.replaceChildren();
+    types.forEach(type => {
+        if (!proneTypeVisibility.has(type)) proneTypeVisibility.set(type, true);
+        const label = document.createElement('label');
+        label.className = 'hm-prone-filter';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = proneTypeVisibility.get(type);
+        checkbox.dataset.proneType = type;
+        checkbox.addEventListener('change', function(){
+            proneTypeVisibility.set(type, checkbox.checked);
+            applyProneFilters();
+        });
+        const text = document.createElement('span');
+        text.textContent = type;
+        label.append(checkbox, text);
+        container.appendChild(label);
+    });
+    applyProneFilters();
+}
+
+function applyProneFilters(){
+    polygons.filter(p => p.kind === 'prone').forEach(feature => {
+        const visible = proneTypeVisibility.get(normalizeProneType(feature.ptype)) !== false;
+        if (visible) feature.layer.addTo(map);
+        else map.removeLayer(feature.layer);
+    });
+    orderProneLayersByRisk();
+}
+
+function orderProneLayersByRisk(){
+    const priority = { low: 1, medium: 2, high: 3, critical: 3 };
+    polygons.filter(p => p.kind === 'prone')
+        .sort((a, b) => (priority[proneRisk(a.color).toLowerCase()] || 3) - (priority[proneRisk(b.color).toLowerCase()] || 3))
+        .forEach(feature => {
+            if (map.hasLayer(feature.layer)) feature.layer.bringToFront();
+        });
 }
 
 function refreshBoundaryMask(){
@@ -426,6 +491,7 @@ function doUndo(){
         polygons.splice(a.oldIndex, 0, a.oldObj);
     }
     refreshBoundaryMask();
+    initProneFilters();
     updateStep();
     updateUndoBtn();
     hint('Undo: last change reversed.');
@@ -622,6 +688,8 @@ function confirmProne(){
         feature.color = color;
         applyProneStyle(feature.layer, color);
         feature.layer.bindPopup(pronePopup(name, ptype, color));
+        initProneFilters();
+        orderProneLayersByRisk();
         pendingProneFeature = null;
         document.getElementById('proneModal').classList.remove('show');
         document.getElementById('proneSubmitBtn').innerHTML = '<i class="fas fa-plus"></i> Add';
@@ -658,6 +726,7 @@ function addProneArea(layer, name, ptype){
     layer.bindPopup(pronePopup(name, ptype, currentProneColor));
     attachLayer(layer, id);
     polygons.push({ id: id, kind: 'prone', name: name, ptype: ptype, color: currentProneColor, type: layer instanceof L.Polygon ? 'polygon' : 'line', layer });
+    initProneFilters();
     updateStep();
     updateUndoBtn();
     resetTool();
