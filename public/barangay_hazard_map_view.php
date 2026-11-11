@@ -74,6 +74,16 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
 
 .hm-divicon{background:transparent;border:none;}
 .hm-ico{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,0.35);border:2px solid #fff;}
+.hm-popup-card{min-width:170px;padding:2px 1px;color:#333;font-family:'Segoe UI',sans-serif;}
+.hm-popup-category{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:20px;background:#eaf4fb;color:#075b91;font-size:11px;font-weight:700;}
+.hm-popup-category i{font-size:11px;}
+.hm-popup-warning{background:#fff0ed;color:#b42318;}
+.hm-popup-name{margin:8px 0 2px;font-size:14px;font-weight:700;line-height:1.3;overflow-wrap:anywhere;}
+.hm-popup-risk{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:8px;padding-top:7px;border-top:1px solid #eee;font-size:11px;color:#666;}
+.hm-popup-risk strong{padding:4px 9px;border-radius:20px;font-size:11px;}
+.hm-popup-risk .hm-risk-low{background:#e8f5ec;color:#218838;}
+.hm-popup-risk .hm-risk-medium{background:#fff3e0;color:#b85c00;}
+.hm-popup-risk .hm-risk-high{background:#fdecea;color:#c62828;}
 </style>
 </head>
 <body>
@@ -166,13 +176,15 @@ function initMap(){
             : L.polygon(p.points, { color: p.color || meta.color, fillColor: p.color || meta.color, fillOpacity: 0.25, weight: 3 });
         layer.addTo(map);
         const sub = p.kind === 'prone' ? 'Prone Area' + (p.ptype ? ': ' + p.ptype : '') : meta.label;
-        layer.bindPopup(p.kind === 'prone' ? pronePopup(p.name, p.ptype, p.color) : '<b>' + esc(p.name || meta.label) + '</b><br><small>' + sub + '</small>');
+        layer.bindPopup(p.kind === 'prone'
+            ? pronePopup(p.name, p.ptype, p.color)
+            : featurePopup(p.name, sub, meta.icon));
     });
     (MAPDATA.points || []).forEach(m => {
         const meta = VIEW_META[m.kind] || VIEW_META.evac;
         const layer = L.marker([parseFloat(m.lat), parseFloat(m.lng)], { icon: markerIcon(m.color || meta.color, meta.icon) });
         layer.addTo(map);
-        layer.bindPopup('<b>' + esc(m.name || meta.label) + '</b><br><small>' + meta.label + '</small>');
+        layer.bindPopup(featurePopup(m.name, meta.label, meta.icon));
     });
 
     const boundary = (MAPDATA.polygons || []).find(p => p.kind === 'boundary' && p.points && p.points.length);
@@ -197,9 +209,19 @@ function proneRisk(color){
 }
 
 function pronePopup(name, type, color){
-    return '<b>' + esc(name || type || 'Prone Area') + '</b><br>'
-        + '<small>Type: ' + esc(type || 'Other') + ' Prone</small><br>'
-        + '<small>Risk Level: ' + proneRisk(color) + '</small>';
+    return featurePopup(name, (type || 'Other') + ' Prone', 'fa-triangle-exclamation', proneRisk(color));
+}
+
+function featurePopup(name, category, icon, risk){
+    const riskRow = risk
+        ? '<div class="hm-popup-risk"><span>Risk level</span><strong class="hm-risk-' + risk.toLowerCase() + '">' + risk + '</strong></div>'
+        : '';
+    const categoryClass = risk ? ' hm-popup-warning' : '';
+    return '<div class="hm-popup-card">'
+        + '<div class="hm-popup-category' + categoryClass + '"><i class="fas ' + icon + '"></i>' + esc(category) + '</div>'
+        + '<div class="hm-popup-name">' + esc(name || category) + '</div>'
+        + riskRow
+        + '</div>';
 }
 
 function esc(t){ if (t === null || t === undefined) return ''; const d = document.createElement('div'); d.appendChild(document.createTextNode(String(t))); return d.innerHTML; }
