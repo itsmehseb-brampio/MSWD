@@ -485,10 +485,11 @@ function applyCreatePerms() {
         const star = document.getElementById('create-star-' + perm);
         const state = document.getElementById('create-state-' + perm);
         const isReq = req.includes(perm);
-        cb.disabled = isReq;
-        cb.checked = isReq || def.includes(perm);
+        const adminOnly = perm === 'edit_hazard_map' && role !== 'admin';
+        cb.disabled = isReq || adminOnly;
+        cb.checked = !adminOnly && (isReq || def.includes(perm));
         star.style.display = isReq ? 'inline' : 'none';
-        state.textContent = isReq ? 'Required' : 'Optional';
+        state.textContent = isReq ? 'Required' : (adminOnly ? 'Admin only' : 'Optional');
         state.className = isReq ? 'perm-state required' : 'perm-state optional';
     });
 
@@ -570,7 +571,14 @@ function updateEditPerms() {
         const star = document.getElementById('edit-star-' + perm);
         const state = document.getElementById('edit-state-' + perm);
         const isReq = req.includes(perm);
-        if (isReq) {
+        const adminOnly = perm === 'edit_hazard_map' && role !== 'admin';
+        if (adminOnly) {
+            cb.checked = false;
+            cb.disabled = true;
+            star.style.display = 'none';
+            state.textContent = 'Admin only';
+            state.className = 'perm-state optional';
+        } else if (isReq) {
             cb.checked = true;
             cb.disabled = true;
             star.style.display = 'inline';

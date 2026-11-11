@@ -54,6 +54,19 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
+function popup(title, detail) {
+    const container = document.createElement('div');
+    const heading = document.createElement('strong');
+    heading.textContent = title;
+    container.appendChild(heading);
+    if (detail) {
+        const description = document.createElement('div');
+        description.textContent = detail;
+        container.appendChild(description);
+    }
+    return container;
+}
+
 const features = L.featureGroup();
 (MAPDATA.polygons || []).forEach(function (polygon) {
     const color = polygon.color || '#0072C6';
@@ -65,11 +78,16 @@ const features = L.featureGroup();
             fillOpacity: 0.22
         }).addTo(features);
     } else if (Array.isArray(polygon.points) && polygon.points.length) {
-        L.polygon(polygon.points, {
-            color: color,
-            fillColor: color,
-            fillOpacity: 0.25
-        }).addTo(features);
+        const isLine = polygon.kind === 'prone' || polygon.type === 'line';
+        const layer = isLine
+            ? L.polyline(polygon.points, { color: color, weight: 7, opacity: 0.95, lineCap: 'round', lineJoin: 'round' })
+            : L.polygon(polygon.points, { color: color, fillColor: color, fillOpacity: 0.25 });
+        const proneRisk = { '#ffed4a': 'Low', '#fd7e14': 'Medium', '#dc3545': 'High' }[String(polygon.color || '').toLowerCase()];
+        const detail = polygon.kind === 'prone'
+            ? (polygon.ptype || 'Other') + ' Prone - ' + (polygon.risk || proneRisk || 'High') + ' risk'
+            : (polygon.risk || '');
+        layer.bindPopup(popup(polygon.name || 'Hazard zone', detail));
+        layer.addTo(features);
     }
 });
 

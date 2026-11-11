@@ -72,10 +72,16 @@ if (isset($conn) && !empty($_SESSION['admin_id'])) {
             </ul>
         </li>
 
-        <li>
-            <a href="admin_hazard_map.php" class="sidebar-btn <?php echo $current_page === 'admin_hazard_map.php' ? 'active' : ''; ?>">
-                <i class="fas fa-map-marked-alt"></i> <span>Hazard Map Information</span>
+        <li class="has-submenu <?php echo in_array($current_page, ['barangay_hazard_map.php','barangay_hazard_map_view.php','admin_hazard_map.php']) ? 'active' : ''; ?>">
+            <a href="javascript:void(0)" onclick="toggleMenu(this)" class="sidebar-btn">
+                <i class="fas fa-map-marked-alt"></i> <span>Hazard Map</span>
             </a>
+            <ul class="submenu">
+                <?php if ($is_super_admin): ?>
+                    <li><a href="barangay_hazard_map.php" class="sidebar-btn <?php echo $current_page === 'barangay_hazard_map.php' ? 'active' : ''; ?>"><i class="fas fa-edit"></i> <span>Edit Shared Map</span></a></li>
+                <?php endif; ?>
+                <li><a href="barangay_hazard_map_view.php" class="sidebar-btn <?php echo $current_page === 'barangay_hazard_map_view.php' ? 'active' : ''; ?>"><i class="fas fa-eye"></i> <span>View Shared Map</span></a></li>
+            </ul>
         </li>
 
         <li>

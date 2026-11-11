@@ -46,8 +46,8 @@ $GROUPS = [
 ];
 
 $REQUIRED = [
-    'admin' => ['view_dashboard', 'manage_admin_accounts', 'manage_barangay_accounts', 'manage_municipal_info', 'view_barangay_info', 'manage_disaster_format', 'review_disaster_reports', 'edit_disaster_report', 'view_hazard_map', 'manage_messages', 'manage_announcements', 'manage_relief'],
-    'barangay' => ['view_dashboard', 'edit_barangay_info', 'submit_disaster_report', 'edit_disaster_report', 'view_hazard_map', 'edit_hazard_map', 'manage_messages', 'view_announcements', 'confirm_relief'],
+    'admin' => ['view_dashboard', 'manage_admin_accounts', 'manage_barangay_accounts', 'manage_municipal_info', 'view_barangay_info', 'manage_disaster_format', 'review_disaster_reports', 'edit_disaster_report', 'view_hazard_map', 'edit_hazard_map', 'manage_messages', 'manage_announcements', 'manage_relief'],
+    'barangay' => ['view_dashboard', 'edit_barangay_info', 'submit_disaster_report', 'edit_disaster_report', 'view_hazard_map', 'manage_messages', 'view_announcements', 'confirm_relief'],
     'user' => ['view_dashboard'],
 ];
 
@@ -158,6 +158,9 @@ function merged_perm_ids($role, $guard, $checkedIds = null) {
     global $conn;
     $map = perm_ids_for_guard($guard);
     if ($checkedIds === null) $checkedIds = checked_perms_for_guard($guard);
+    if ($role !== 'admin' && isset($map['edit_hazard_map'])) {
+        $checkedIds = array_values(array_diff($checkedIds, [$map['edit_hazard_map']]));
+    }
     $req = isset($GLOBALS['REQUIRED'][$role]) ? $GLOBALS['REQUIRED'][$role] : [];
     $ids = [];
     foreach ($req as $name) {
@@ -994,10 +997,11 @@ function applyCreatePerms(){
         const star = document.getElementById('create-star-' + perm);
         const state = document.getElementById('create-state-' + perm);
         const isReq = req.indexOf(perm) !== -1;
-        cb.disabled = isReq;
-        cb.checked = isReq || def.indexOf(perm) !== -1;
+        const adminOnly = perm === 'edit_hazard_map' && role !== 'admin';
+        cb.disabled = isReq || adminOnly;
+        cb.checked = !adminOnly && (isReq || def.indexOf(perm) !== -1);
         star.style.display = isReq ? 'inline' : 'none';
-        state.textContent = isReq ? 'Required' : 'Optional';
+        state.textContent = isReq ? 'Required' : (adminOnly ? 'Admin only' : 'Optional');
         state.className = isReq ? 'perm-state required' : 'perm-state optional';
     });
     const labels = {
@@ -1055,7 +1059,9 @@ function updateEditPerms(){
         const star = document.getElementById('edit-star-' + perm);
         const state = document.getElementById('edit-state-' + perm);
         const isReq = req.indexOf(perm) !== -1;
-        if (isReq){ cb.checked = true; cb.disabled = true; star.style.display = 'inline'; state.textContent = 'Required'; state.className = 'perm-state required'; }
+        const adminOnly = perm === 'edit_hazard_map' && role !== 'admin';
+        if (adminOnly){ cb.checked = false; cb.disabled = true; star.style.display = 'none'; state.textContent = 'Admin only'; state.className = 'perm-state optional'; }
+        else if (isReq){ cb.checked = true; cb.disabled = true; star.style.display = 'inline'; state.textContent = 'Required'; state.className = 'perm-state required'; }
         else { cb.disabled = false; star.style.display = 'none'; state.textContent = 'Optional'; state.className = 'perm-state optional'; }
     });
 }

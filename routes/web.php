@@ -9,7 +9,6 @@ use App\Http\Controllers\BarangayManagementController;
 use App\Http\Controllers\MunicipalContactsController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DisasterController;
-use App\Http\Controllers\HazardMapController;
 use App\Http\Controllers\MessagesController;
 use App\Http\Controllers\AnnouncementsController;
 use App\Http\Controllers\ReliefController;
@@ -21,7 +20,6 @@ use App\Http\Controllers\BarangayDisasterController;
 use App\Http\Controllers\BarangayMessagesController;
 use App\Http\Controllers\BarangayAnnouncementsController;
 use App\Http\Controllers\BarangayReliefController;
-use App\Http\Controllers\Api\HazardMapApiController;
 use App\Http\Controllers\Api\AdminAnnouncementApiController;
 use App\Http\Controllers\Api\AdminMessageApiController;
 use App\Http\Controllers\Api\AdminReliefApiController;
@@ -42,12 +40,10 @@ Route::get('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::get('/invite/{token}', [InviteController::class, 'signup'])->name('invite.signup');
 Route::post('/invite/{token}', [InviteController::class, 'complete'])->name('invite.complete');
 
-// Malilipot municipality hazard map for barangay accounts
+// Shared municipality hazard map
 Route::middleware('auth:barangay')->group(function () {
     Route::get('/malilipot/hazard-map', [App\Http\Controllers\MalilipotHazardMapController::class, 'edit'])->name('malilipot.hazard_map');
-    Route::post('/malilipot/hazard-map', [App\Http\Controllers\MalilipotHazardMapController::class, 'update'])->name('malilipot.hazard_map.update');
     Route::get('/malilipot/hazard-map/view', [App\Http\Controllers\MalilipotHazardMapController::class, 'view'])->name('malilipot.hazard_map_view');
-    Route::post('/malilipot/api/hazard-map/{action}', [App\Http\Controllers\Api\MalilipotHazardMapApiController::class, 'handle']);
 });
 
 // ============== MSWD / ADMIN ROUTES ==============
@@ -96,8 +92,8 @@ Route::prefix('admin')->group(function () {
         Route::post('/disaster/review', [DisasterController::class, 'review'])->name('admin.disaster.review');
 
         Route::get('/hazard-map', [App\Http\Controllers\Admin\HazardMapController::class, 'index'])->name('admin.hazard_map');
+        Route::get('/hazard-map/edit', [App\Http\Controllers\Admin\HazardMapController::class, 'edit'])->name('admin.hazard_map.edit');
         Route::get('/hazard-map/view', [App\Http\Controllers\Admin\HazardMapController::class, 'view'])->name('admin.hazard_map_view');
-        Route::get('/hazard-map/barangays', [HazardMapController::class, 'index'])->name('admin.hazard_map.barangays');
         Route::get('/messages', [MessagesController::class, 'index'])->name('admin.messages');
         Route::get('/announcements', [AnnouncementsController::class, 'index'])->name('admin.announcements');
         Route::get('/relief', [ReliefController::class, 'index'])->name('admin.relief');
@@ -106,6 +102,7 @@ Route::prefix('admin')->group(function () {
 
     // Admin JSON APIs
     Route::prefix('api')->middleware('auth:admin')->group(function () {
+        Route::post('/hazard-map/{action}', [App\Http\Controllers\Api\MalilipotHazardMapApiController::class, 'handle']);
         Route::post('/announcements/{action}', [AdminAnnouncementApiController::class, 'handle']);
         Route::post('/messages/{action}', [AdminMessageApiController::class, 'handle']);
         Route::post('/relief/{action}', [AdminReliefApiController::class, 'handle']);
@@ -132,8 +129,7 @@ Route::prefix('barangay')->group(function () {
         Route::post('/info', [BarangayInfoController::class, 'update'])->name('barangay.info.update');
 
         // Legacy hazard-map URLs redirect to the municipality-wide map.
-        Route::get('/hazard-map', [BarangayHazardMapController::class, 'edit'])->name('barangay.hazard_map');
-        Route::post('/hazard-map', [BarangayHazardMapController::class, 'update'])->name('barangay.hazard_map.update');
+        Route::get('/hazard-map', [BarangayHazardMapController::class, 'view'])->name('barangay.hazard_map');
         Route::get('/hazard-map/view', [BarangayHazardMapController::class, 'view'])->name('barangay.hazard_map_view');
 
         Route::get('/disaster/apply', [BarangayDisasterController::class, 'apply'])->name('barangay.disaster.apply');
@@ -153,7 +149,6 @@ Route::prefix('barangay')->group(function () {
 
     // Barangay JSON APIs
     Route::prefix('api')->middleware('auth:barangay')->group(function () {
-        Route::post('/hazard-map/{action}', [HazardMapApiController::class, 'handle']);
         Route::post('/announcements/{action}', [BarangayAnnouncementApiController::class, 'handle']);
         Route::post('/messages/{action}', [BarangayMessageApiController::class, 'handle']);
         Route::post('/relief/{action}', [BarangayReliefApiController::class, 'handle']);

@@ -1,36 +1,66 @@
 <?php
 session_start();
-if (!isset($_SESSION['barangay_id'])) {
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+if (isset($_SESSION['barangay_id']) && !isset($_SESSION['admin_id'])) {
+    header("Location: barangay_hazard_map_view.php");
+    exit();
+}
+if (!isset($_SESSION['admin_id'])) {
     header("Location: barangay_login.php");
     exit();
 }
 require 'db.php';
 
-$barangay_id = intval($_SESSION['barangay_id']);
-$barangay_name = $_SESSION['barangay_name'] ?? '';
+$role_stmt = $conn->prepare(
+    "SELECT 1 FROM model_has_roles mr
+     JOIN roles r ON r.id = mr.role_id
+     WHERE mr.model_type = ? AND mr.model_id = ? AND r.name = 'admin'
+     LIMIT 1"
+);
+if (!$role_stmt) {
+    http_response_code(500);
+    exit('Unable to verify administrator permissions.');
+}
+$admin_model = 'App\\Models\\Admin';
+$admin_id = (int) $_SESSION['admin_id'];
+$role_stmt->bind_param('si', $admin_model, $admin_id);
+if (!$role_stmt->execute()) {
+    $role_stmt->close();
+    http_response_code(500);
+    exit('Unable to verify administrator permissions.');
+}
+$role_result = $role_stmt->get_result();
+$is_admin = $role_result && $role_result->num_rows > 0;
+$role_stmt->close();
+if (!$is_admin) {
+    http_response_code(403);
+    exit('Only administrators can edit the shared hazard map.');
+}
 
-$detail = $conn->query("SELECT map_lat, map_lng, map_zoom, hazard_polygons, hazard_points, hazard_map_updated_at FROM barangay_details WHERE barangay_id = $barangay_id")->fetch_assoc();
+$barangay_name = 'Malilipot Municipality';
+
+$detail = $conn->query("SELECT map_lat, map_lng, map_zoom, hazard_polygons, hazard_points, hazard_map_updated_at FROM municipal_hazard_maps WHERE id = 1")->fetch_assoc();
 
 $mapData = [
-    'lat' => null, 'lng' => null, 'zoom' => 14,
+    'lat' => null, 'lng' => null, 'zoom' => 14, 'barangay_name' => $barangay_name,
     'polygons' => [], 'points' => []
 ];
 if ($detail) {
-    if ($detail['map_lat'] !== null) {
-        $mapData['lat'] = floatval($detail['map_lat']);
-        $mapData['lng'] = floatval($detail['map_lng']);
-        $mapData['zoom'] = intval($detail['map_zoom'] ?: 14);
-        $mapData['polygons'] = json_decode($detail['hazard_polygons'] ?? '[]', true) ?: [];
-        $mapData['points'] = json_decode($detail['hazard_points'] ?? '[]', true) ?: [];
-        $mapData['updated_at'] = !empty($detail['hazard_map_updated_at']) ? $detail['hazard_map_updated_at'] : null;
-    }
+    $mapData['lat'] = $detail['map_lat'] !== null ? floatval($detail['map_lat']) : null;
+    $mapData['lng'] = $detail['map_lng'] !== null ? floatval($detail['map_lng']) : null;
+    $mapData['zoom'] = intval($detail['map_zoom'] ?: 14);
+    $mapData['polygons'] = json_decode($detail['hazard_polygons'] ?? '[]', true) ?: [];
+    $mapData['points'] = json_decode($detail['hazard_points'] ?? '[]', true) ?: [];
+    $mapData['updated_at'] = !empty($detail['hazard_map_updated_at']) ? $detail['hazard_map_updated_at'] : null;
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Barangay Hazard Map</title>
+<title>Municipality Hazard Map</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -130,10 +160,10 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
 </head>
 <body>
 <div class="wrapper">
-    <?php include 'barangay_sidebar.php'; ?>
+    <?php include 'admin_sidebar.php'; ?>
     <div class="main-content">
         <div class="header">
-            <h1><i class="fas fa-map-marked-alt"></i> Barangay Hazard Map</h1>
+            <h1><i class="fas fa-map-marked-alt"></i> Municipality Hazard Map</h1>
             <div style="position:relative;">
                 <div class="profile-area" onclick="toggleDropdown()">
                     <span style="font-weight:500;"><?php echo htmlspecialchars($barangay_name); ?></span>
@@ -212,11 +242,12 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 <script>
 const MAPDATA = <?php echo json_encode($mapData); ?>;
+const CSRF_TOKEN = <?php echo json_encode($_SESSION['csrf_token']); ?>;
 
 const TOOLS = {
-    boundary: { label: 'Barangay Boundary', icon: 'fa-map-marker-alt', color: '#0072C6', shape: 'polygon' },
-    boxcrop:  { label: 'Barangay Boundary', icon: 'fa-square', color: '#0072C6', shape: 'box' },
-    freehand: { label: 'Barangay Boundary', icon: 'fa-pen', color: '#0072C6', shape: 'freehand' },
+    boundary: { label: 'Municipality Boundary', icon: 'fa-map-marker-alt', color: '#0072C6', shape: 'polygon' },
+    boxcrop:  { label: 'Municipality Boundary', icon: 'fa-square', color: '#0072C6', shape: 'box' },
+    freehand: { label: 'Municipality Boundary', icon: 'fa-pen', color: '#0072C6', shape: 'freehand' },
     prone:    { label: 'Prone Area',         icon: 'fa-triangle-exclamation', color: '#dc3545', shape: 'line' },
     evac:     { label: 'Evacuation Center',  icon: 'fa-hospital', color: '#0072C6', shape: 'marker' },
     hall:     { label: 'Barangay Hall',      icon: 'fa-university', color: '#e8710a', shape: 'marker' },
@@ -260,7 +291,7 @@ function loadLayers(){
             ? L.polyline(p.points, { color: p.color || '#0072C6', weight: p.kind === 'prone' ? 10 : 6, opacity: 0.95, lineCap: 'round', lineJoin: 'round' })
             : L.polygon(p.points, { color: p.color || '#0072C6', fillColor: p.color || '#0072C6', fillOpacity: 0.25, weight: 3 });
         layer.addTo(map);
-        const sub = p.kind === 'prone' ? 'Prone Area' + (p.ptype ? ': ' + p.ptype : '') : 'Barangay Boundary';
+        const sub = p.kind === 'prone' ? 'Prone Area' + (p.ptype ? ': ' + p.ptype : '') : 'Municipality Boundary';
         layer.bindPopup(p.kind === 'prone'
             ? pronePopup(p.name, p.ptype, p.color)
             : featurePopup(p.name, sub, TOOLS[p.kind]?.icon || 'fa-map-marker-alt'));
@@ -437,7 +468,7 @@ function setTool(tool){
     drawHandler.enable();
     map.once('draw:created', onCreated);
     if (meta.shape === 'box') {
-        hint('Drag on the map to draw a box around your barangay area');
+        hint('Drag on the map to draw a box around the municipality area');
     } else if (meta.shape === 'polygon') {
         hint('Click corner points, then click the first point to finish');
     } else if (meta.shape === 'line') {
@@ -452,7 +483,7 @@ function onCreated(e){
     const tool = currentTool;
 
     if (tool === 'boundary' || tool === 'boxcrop') {
-        commitBoundary(layer, MAPDATA.barangay_name || 'Barangay Boundary');
+        commitBoundary(layer, MAPDATA.barangay_name || 'Municipality Boundary');
         return;
     }
 
@@ -580,7 +611,7 @@ function onFreehandEnd(e){
     const pts = freehand.pts.slice();
     if (pts.length < 3) { hint('Trace too small — press Freehand and try again.'); return; }
     const layer = L.polygon(pts);
-    commitBoundary(layer, MAPDATA.barangay_name || 'Barangay Boundary');
+    commitBoundary(layer, MAPDATA.barangay_name || 'Municipality Boundary');
 }
 
 function attachLayer(layer, id){
@@ -670,6 +701,7 @@ function saveMap(){
 
     const fd = new FormData();
     fd.append('action', 'save');
+    fd.append('csrf_token', CSRF_TOKEN);
     fd.append('map_lat', map.getCenter().lat.toFixed(6));
     fd.append('map_lng', map.getCenter().lng.toFixed(6));
     fd.append('map_zoom', map.getZoom());

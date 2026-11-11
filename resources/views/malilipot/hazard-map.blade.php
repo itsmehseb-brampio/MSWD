@@ -1,4 +1,4 @@
-@extends('layouts.barangay')
+@extends('layouts.admin')
 
 @section('title', 'Malilipot Hazard Map')
 @section('headerTitle', 'Malilipot Municipality Hazard Map')
@@ -168,7 +168,7 @@
     </div>
     <div class="legend">
         @if (hasBoundary)
-            <span class="lg"><i style="background:#0072C6;"></i> My Boundary</span>
+            <span class="lg"><i style="background:#0072C6;"></i> Municipality Boundary</span>
         @else
             <span class="lg" style="color:#777;">No boundary drawn yet</span>
         @endif
@@ -196,17 +196,21 @@
 <script>
 const MAPDATA = @json($mapData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
 const CSRFTOKEN = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-const API_BASE = '{{ url('malilipot/api/hazard-map') }}';
+const API_BASE = '{{ url('admin/api/hazard-map') }}';
 
 const RISK_COLORS = { Low: '#5cb85c', Medium: '#f0ad4e', High: '#d9534f', Critical: '#7b1a1a' };
 const RISK_ORDER = ['Low', 'Medium', 'High', 'Critical'];
 const ICONS = { Low: 'fa-smile', Medium: 'fa-meh', High: 'fa-frown', Critical: 'fa-dizzy' };
 
 let curRisk = MAPDATA.risk_level || 'Low';
+let curProneRisk = 'medium';
 let layers = { base: null, features: L.layerGroup() };
 let tempLayer = null;
 let drawing = false;
 let pendingPoints = null;
+let proneDrawing = false;
+let proneTempLayer = null;
+let pendingPronePoints = null;
 let toolState = { cur: 'select' };
 let polyCount = 0;
 let pointCount = 0;
@@ -287,6 +291,7 @@ function syncToolButtons() {
 function setTool(tool) {
     toolState.cur = tool;
     cancelDraw();
+    cancelDrawProne();
     if (tool === 'delete' || tool === 'select') {
         layers.features.eachLayer(function (ly) {
             if (ly.feature) { ly.unbindPopup(); ly.off('click'); }
@@ -364,7 +369,17 @@ function selectedPoints() {
 }
 
 function drawFeature(feat) {
-    if (feat.ptype === 'polygon' || Array.isArray(feat.points)) {
+    if (feat.type === 'line' || feat.ptype === 'line' || feat.kind === 'prone') {
+        let line = L.polyline(feat.points || [], {
+            color: feat.color || '#0072C6',
+            weight: 6,
+            opacity: 0.95
+        });
+        line.feature = feat;
+        line.bindPopup(popupHtml(feat));
+        line.on('click', onFeatureClick);
+        line.addTo(layers.features);
+    } else if (feat.ptype === 'polygon' || Array.isArray(feat.points)) {
         let pts = feat.points || [];
         let poly = L.polygon(pts, {
             color: feat.color || '#0072C6',
@@ -398,9 +413,10 @@ function drawFeature(feat) {
 }
 
 function popupHtml(feat) {
-    let risk = feat.risk ? '<br>Risk: <b>' + feat.risk + '</b>' : '';
-    return '<b>' + (feat.name || 'Feature') + '</b>' + risk +
-        '<br><small>' + (feat.kind === 'boundary' ? 'Municipality Boundary' : (feat.kind === 'hazard' ? 'Hazard Zone' : 'Point Marker')) + '</small>';
+    let risk = feat.risk || (feat.kind === 'prone' ? ({ '#ffed4a': 'Low', '#fd7e14': 'Medium', '#dc3545': 'High' }[String(feat.color || '').toLowerCase()] || 'High') : '');
+    let detail = feat.kind === 'prone' ? (feat.ptype || 'Other') + ' Prone' : (feat.kind === 'boundary' ? 'Municipality Boundary' : (feat.kind === 'hazard' ? 'Hazard Zone' : 'Point Marker'));
+    return '<b>' + (feat.name || 'Feature') + '</b>' + (risk ? '<br>Risk: <b>' + risk + '</b>' : '') +
+        '<br><small>' + detail + '</small>';
 }
 
 function attachLayerEvents() {
@@ -498,7 +514,9 @@ function renderRiskDots() {
 }
 
 function setRiskLevel(level) {
+    level = RISK_ORDER.find(function (risk) { return risk.toLowerCase() === String(level).toLowerCase(); }) || level;
     curRisk = level;
+    curProneRisk = String(level).toLowerCase();
     renderRiskDots();
     let fd = new FormData();
     fd.append('action', 'set_risk');
@@ -575,7 +593,7 @@ function init() {
         b.onclick = function () { setTool(b.dataset.tool); };
     });
     document.getElementById('undoBtn').onclick = doUndo;
-    document.getElementById('cancelBtn').onclick = function () { cancelDraw(); };
+    document.getElementById('cancelBtn').onclick = function () { cancelDraw(); cancelDrawProne(); };
     document.getElementById('saveBtn').onclick = saveMap;
     document.querySelectorAll('.basemap-btn').forEach(function (b) {
         b.onclick = function () { setBasemap(b.dataset.basemap); };
@@ -619,9 +637,6 @@ function init() {
         : 'Last saved: ' + MAPDATA.updated_at, true);
 
     // Prone area drawing
-    let proneDrawing = false;
-    let proneTempLayer = null;
-    let pendingPronePoints = null;
     const PRONE_COLORS = { low: '#f1c40f', medium: '#e67e22', high: '#e74c3c' };
     const PRONE_RISKS = ['low', 'medium', 'high', 'critical'];
 
@@ -739,41 +754,34 @@ function cancelDrawProne() {
 }
 
 function commitProneArea(points) {
-    let risk = prompt('Enter risk level (low, medium, high):', curProneRisk || 'medium');
-    if (!risk || !['low', 'medium', 'high'].includes(risk)) { setStatus('Prone area cancelled - invalid risk level.', false); return; }
-    let name = prompt('Enter a name for this prone area:', 'Prone Area ' + (MAPDATA.proneAreas ? MAPDATA.proneAreas.length + 1 : 1));
-    let color = { low: '#f1c40f', medium: '#e67e22', high: '#e74c3c' }[risk];
+    let defaultRisk = curProneRisk === 'critical' ? 'high' : curProneRisk;
+    let risk = prompt('Enter risk level (low, medium, high):', defaultRisk || 'medium');
+    if (!risk || !['low', 'medium', 'high'].includes(risk.toLowerCase())) { setStatus('Prone area cancelled - invalid risk level.', false); return; }
+    risk = risk.toLowerCase();
+    let proneType = prompt('Enter prone area type (Flood, Storm, Landslide, Volcanic, Earthquake, Fire, Erosion, Other):', 'Flood');
+    if (!proneType) { setStatus('Prone area cancelled.', false); return; }
+    let name = prompt('Enter a name for this prone area:', proneType);
+    if (name === null) { setStatus('Prone area cancelled.', false); return; }
+    let color = { low: '#ffed4a', medium: '#fd7e14', high: '#dc3545' }[risk];
     let feat = {
         id: 'prone-' + Date.now(),
-        kind: 'prone_area',
+        kind: 'prone',
         name: name || 'Prone Area',
-        type: 'polygon',
+        ptype: proneType,
+        type: 'line',
         color: color,
-        risk: risk,
+        risk: risk.charAt(0).toUpperCase() + risk.slice(1),
         points: points
     };
-    MAPDATA.proneAreas = MAPDATA.proneAreas || [];
-    MAPDATA.proneAreas.push(feat);
-    drawProneArea(feat);
+    MAPDATA.polygons.push(feat);
+    drawFeature(feat);
     setStatus('Prone area added - Risk: ' + risk + '.', true);
     updateProneCount();
     cancelDrawProne();
 }
 
-function drawProneArea(feat) {
-    let poly = L.polygon(feat.points, {
-        color: feat.color,
-        weight: 3,
-        fillColor: feat.color,
-        fillOpacity: 0.15
-    });
-    poly.feature = feat;
-    poly.bindPopup('<b>' + feat.name + '</b><br>Risk: <b>' + feat.risk + '</b>');
-    poly.addTo(layers.features);
-}
-
 function updateProneCount() {
-    let count = (MAPDATA.proneAreas || []).length;
+    let count = MAPDATA.polygons.filter(function (feature) { return feature.kind === 'prone'; }).length;
     let el = document.getElementById('proneCount');
     if (el) el.textContent = count;
 }

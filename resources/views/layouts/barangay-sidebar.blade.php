@@ -92,23 +92,16 @@
         </div>
         @endif
 
-        @if ($canBrgy('view_hazard_map') || $canBrgy('edit_hazard_map'))
+        @if ($canBrgy('view_hazard_map'))
         <div class="has-submenu {{ $hazardActive ? 'open' : '' }}">
             <div class="m-item {{ $hazardActive ? 'active' : '' }}" onclick="toggleMenu(this)">
                 <i class="fas fa-map-marked-alt"></i> Hazard Map
                 <i class="fas fa-chevron-right m-arrow"></i>
             </div>
             <div class="sub-list">
-                @if ($canBrgy('edit_hazard_map'))
-                <a class="s-item {{ $current === 'barangay.hazard_map' ? 'active' : '' }}" href="{{ route('barangay.hazard_map') }}">
-                    <i class="fas fa-edit"></i> Edit
+                <a class="s-item {{ in_array($current, ['barangay.hazard_map', 'barangay.hazard_map_view']) ? 'active' : '' }}" href="{{ route('barangay.hazard_map_view') }}">
+                    <i class="fas fa-map"></i> Municipality Hazard Map
                 </a>
-                @endif
-                @if ($canBrgy('view_hazard_map'))
-                <a class="s-item {{ $current === 'barangay.hazard_map_view' ? 'active' : '' }}" href="{{ route('barangay.hazard_map_view') }}">
-                    <i class="fas fa-map"></i> View
-                </a>
-                @endif
             </div>
         </div>
         @endif

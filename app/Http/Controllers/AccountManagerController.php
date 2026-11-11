@@ -170,6 +170,9 @@ class AccountManagerController extends Controller
 
         $required = PermissionHelper::requiredFor($roleName);
         $custom = $request->has('permissions') ? array_keys($request->permissions) : [];
+        if ($roleName !== 'admin') {
+            $custom = array_diff($custom, ['edit_hazard_map']);
+        }
         $account->syncPermissions(array_values(array_unique(array_merge($required, $custom))));
 
         if ($type === 'user') {
@@ -268,6 +271,9 @@ class AccountManagerController extends Controller
 
         $required = PermissionHelper::requiredFor($roleName);
         $custom = $request->has('permissions') ? array_keys($request->permissions) : [];
+        if ($roleName !== 'admin') {
+            $custom = array_diff($custom, ['edit_hazard_map']);
+        }
         $account->syncPermissions(array_values(array_unique(array_merge($required, $custom))));
 
         if (($type === 'admin' || $type === 'user') && (int) Auth::guard('admin')->id() === (int) $account->id) {

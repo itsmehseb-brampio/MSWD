@@ -3,7 +3,7 @@ $route = request()->route() ? request()->route()->getName() : '';
 $admin = Auth::guard('admin')->user();
 function canAdmin($perm) {
     $u = Auth::guard('admin')->user();
-    return $u && $u->hasPerm($perm);
+    return $u && ($perm !== 'edit_hazard_map' || $u->hasRole('admin')) && $u->hasPerm($perm);
 }
 @endphp
 <!-- Admin Sidebar -->
@@ -61,10 +61,16 @@ function canAdmin($perm) {
         </li>
         @endif
         @if (canAdmin('view_hazard_map'))
-        <li>
-            <a href="{{ route('admin.hazard_map') }}" class="sidebar-btn {{ $route === 'admin.hazard_map' ? 'active' : '' }}">
-                <i class="fas fa-map-marked-alt"></i> <span>Hazard Map Information</span>
+        <li class="has-submenu {{ in_array($route, ['admin.hazard_map', 'admin.hazard_map.edit', 'admin.hazard_map_view']) ? 'active' : '' }}">
+            <a href="javascript:void(0)" onclick="toggleMenu(this)" class="sidebar-btn">
+                <i class="fas fa-map-marked-alt"></i> <span>Hazard Map</span>
             </a>
+            <ul class="submenu">
+                @if (canAdmin('edit_hazard_map'))
+                <li><a href="{{ route('admin.hazard_map.edit') }}" class="sidebar-btn {{ $route === 'admin.hazard_map.edit' ? 'active' : '' }}"><i class="fas fa-edit"></i> <span>Edit Shared Map</span></a></li>
+                @endif
+                <li><a href="{{ route('admin.hazard_map_view') }}" class="sidebar-btn {{ $route === 'admin.hazard_map_view' ? 'active' : '' }}"><i class="fas fa-eye"></i> <span>View Shared Map</span></a></li>
+            </ul>
         </li>
         @endif
         @if (canAdmin('manage_messages'))

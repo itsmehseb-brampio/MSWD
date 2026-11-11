@@ -14,9 +14,9 @@ class MalilipotHazardMapApiController extends Controller
 
     public function handle(Request $request, $action)
     {
-        $barangay = Auth::guard('barangay')->user();
-        if (!$barangay || !$barangay->hasPerm('edit_hazard_map')) {
-            return response()->json(['ok' => false, 'error' => 'You do not have permission to edit the hazard map.'], 403);
+        $admin = Auth::guard('admin')->user();
+        if (!$admin || !$admin->hasRole('admin') || !$admin->hasPerm('edit_hazard_map')) {
+            return response()->json(['ok' => false, 'error' => 'Only authorized administrators can edit the shared hazard map.'], 403);
         }
 
         switch ($action) {

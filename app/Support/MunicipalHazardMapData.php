@@ -3,8 +3,6 @@
 namespace App\Support;
 
 use App\Models\MunicipalHazardMap;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
@@ -14,109 +12,44 @@ class MunicipalHazardMapData
 
     public static function load(): array
     {
-        if (Schema::hasTable('municipal_hazard_maps')) {
-            $map = MunicipalHazardMap::find(self::MAP_ID);
-            if ($map) {
-                $polygons = self::decodeFeatures($map->hazard_polygons, 'municipality hazard polygons');
-                $points = self::decodeFeatures($map->hazard_points, 'municipality hazard points');
-
-                // If no boundary exists yet, add a default Malilipot municipality boundary
-                $hasBoundary = $polygons->some(function (p) { return $p['kind'] === 'boundary'; });
-                if (!$hasBoundary) {
-                    $malilipotBoundary = [
-                        'id' => 'poly-0',
-                        'kind' => 'boundary',
-                        'name' => 'Malilipot Municipality',
-                        'ptype' => 'polygon',
-                        'color' => '#0072C6',
-                        'type' => 'freehand',
-                        'points' => [
-                            [13.3000, 123.6800],
-                            [13.3800, 123.6800],
-                            [13.3800, 123.7800],
-                            [13.3000, 123.7800],
-                            [13.3000, 123.6800],
-                        ]
-                    ];
-                    $polygons = array_merge([$malilipotBoundary], (array) $polygons);
-                }
-
-                return self::formatData(
-                    $map->map_lat ?? 13.3597,
-                    $map->map_lng ?? 123.7311,
-                    $map->map_zoom ?? 7,
-                    $map->risk_level ?? 'Low',
-                    $polygons,
-                    $points,
-                    $map->hazard_map_updated_at?->format('M d, Y h:i A')
-                );
-            }
+        if (!Schema::hasTable('municipal_hazard_maps')) {
+            throw new RuntimeException('Municipality hazard-map storage is unavailable. Run the database migrations.');
         }
 
-        return self::loadFromBarangayMaps();
-    }
-
-    private static function loadFromBarangayMaps(): array
-    {
-        $rows = DB::table('barangays')
-            ->leftJoin('barangay_details', 'barangay_details.barangay_id', '=', 'barangays.barangay_id')
-            ->select([
-                'barangays.barangay_name',
-                'barangay_details.map_lat',
-                'barangay_details.map_lng',
-                'barangay_details.risk_level',
-                'barangay_details.hazard_polygons',
-                'barangay_details.hazard_points',
-                'barangay_details.hazard_map_updated_at',
-            ])
-            ->get();
-
-        $polygons = [];
-        $points = [];
-        $latitudes = [];
-        $longitudes = [];
-        $riskLevels = [];
-        $updatedAt = null;
-
-        foreach ($rows as $row) {
-            foreach (self::decodeFeatures($row->hazard_polygons, 'barangay hazard polygons') as $polygon) {
-                $polygon['barangay_name'] = $row->barangay_name;
-                $polygons[] = $polygon;
-            }
-
-            foreach (self::decodeFeatures($row->hazard_points, 'barangay hazard points') as $point) {
-                $point['barangay_name'] = $row->barangay_name;
-                $points[] = $point;
-            }
-
-            if (is_numeric($row->map_lat) && is_numeric($row->map_lng)) {
-                $latitudes[] = (float) $row->map_lat;
-                $longitudes[] = (float) $row->map_lng;
-            }
-            if (in_array($row->risk_level, ['Low', 'Medium', 'High', 'Critical'], true)) {
-                $riskLevels[] = $row->risk_level;
-            }
-            if ($row->hazard_map_updated_at && (!$updatedAt || $row->hazard_map_updated_at > $updatedAt)) {
-                $updatedAt = $row->hazard_map_updated_at;
-            }
+        $map = MunicipalHazardMap::find(self::MAP_ID);
+        if (!$map) {
+            return self::formatData(13.3597, 123.7311, 7, 'Low', [], [], null);
         }
 
-        $riskLevel = 'Low';
-        foreach (['Critical', 'High', 'Medium', 'Low'] as $candidate) {
-            if (in_array($candidate, $riskLevels, true)) {
-                $riskLevel = $candidate;
-                break;
-            }
+        $polygons = self::decodeFeatures($map->hazard_polygons, 'municipality hazard polygons');
+        $points = self::decodeFeatures($map->hazard_points, 'municipality hazard points');
+
+        if (!array_filter($polygons, fn ($polygon) => is_array($polygon) && ($polygon['kind'] ?? null) === 'boundary')) {
+            array_unshift($polygons, [
+                'id' => 'poly-0',
+                'kind' => 'boundary',
+                'name' => 'Malilipot Municipality Boundary',
+                'ptype' => 'polygon',
+                'color' => '#0072C6',
+                'type' => 'freehand',
+                'points' => [
+                    [13.3000, 123.6800],
+                    [13.3800, 123.6800],
+                    [13.3800, 123.7800],
+                    [13.3000, 123.7800],
+                    [13.3000, 123.6800],
+                ],
+            ]);
         }
 
         return self::formatData(
-            $latitudes ? array_sum($latitudes) / count($latitudes) : 13.3597,
-            $longitudes ? array_sum($longitudes) / count($longitudes) : 123.7311,
-            7,
-            $riskLevel,
+            $map->map_lat ?? 13.3597,
+            $map->map_lng ?? 123.7311,
+            $map->map_zoom ?? 7,
+            $map->risk_level ?? 'Low',
             $polygons,
             $points,
-            $updatedAt ? Carbon::parse($updatedAt)->format('M d, Y h:i A') : null
+            $map->hazard_map_updated_at?->format('M d, Y h:i A')
         );
     }
 

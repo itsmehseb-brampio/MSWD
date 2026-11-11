@@ -1,31 +1,32 @@
 <?php
 session_start();
-if (!isset($_SESSION['barangay_id'])) {
-    header("Location: barangay_login.php");
+if (!isset($_SESSION['barangay_id']) && !isset($_SESSION['admin_id'])) {
+    header("Location: login.php");
     exit();
 }
 require 'db.php';
 
-$barangay_id = intval($_SESSION['barangay_id']);
-$barangay_name = $_SESSION['barangay_name'] ?? '';
+$barangay_name = 'Malilipot Municipality';
 
-$detail = $conn->query("SELECT map_lat, map_lng, map_zoom, hazard_polygons, hazard_points, hazard_map_updated_at, hazard_map FROM barangay_details WHERE barangay_id = $barangay_id")->fetch_assoc();
+$detail = $conn->query("SELECT map_lat, map_lng, map_zoom, hazard_polygons, hazard_points, hazard_map_updated_at FROM municipal_hazard_maps WHERE id = 1")->fetch_assoc();
 
 $mapData = [
-    'lat' => null, 'lng' => null, 'zoom' => 14,
+    'lat' => 13.3189, 'lng' => 123.7383, 'zoom' => 13,
     'polygons' => [], 'points' => [], 'updated_at' => null
 ];
 $hasLive = false;
-if ($detail && $detail['map_lat'] !== null) {
-    $hasLive = true;
-    $mapData['lat'] = floatval($detail['map_lat']);
-    $mapData['lng'] = floatval($detail['map_lng']);
+if ($detail) {
+    if ($detail['map_lat'] !== null && $detail['map_lng'] !== null) {
+        $mapData['lat'] = floatval($detail['map_lat']);
+        $mapData['lng'] = floatval($detail['map_lng']);
+    }
     $mapData['zoom'] = intval($detail['map_zoom'] ?: 14);
     $mapData['polygons'] = json_decode($detail['hazard_polygons'] ?? '[]', true) ?: [];
     $mapData['points'] = json_decode($detail['hazard_points'] ?? '[]', true) ?: [];
     $mapData['updated_at'] = !empty($detail['hazard_map_updated_at']) ? $detail['hazard_map_updated_at'] : null;
+    $hasLive = !empty($mapData['polygons']) || !empty($mapData['points']) || $detail['map_lat'] !== null;
 }
-$hazard_image = ($detail && !empty($detail['hazard_map'])) ? $detail['hazard_map'] : '';
+$hazard_image = '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -96,7 +97,11 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
 </head>
 <body>
 <div class="wrapper">
-    <?php include 'barangay_sidebar.php'; ?>
+    <?php if (isset($_SESSION['admin_id'])): ?>
+        <?php include 'admin_sidebar.php'; ?>
+    <?php else: ?>
+        <?php include 'barangay_sidebar.php'; ?>
+    <?php endif; ?>
     <div class="main-content">
         <div class="header">
             <h1><i class="fas fa-map-marked-alt"></i> Hazard Map View</h1>
@@ -140,7 +145,7 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
             <div class="hm-placeholder">
                 <div class="no-map">
                     <i class="fas fa-map"></i>
-                    <p>No hazard map yet. <a href="barangay_hazard_map.php">Edit Hazard Map</a> to create one.</p>
+                    <p>No municipality hazard map has been saved yet.</p>
                 </div>
             </div>
             <?php endif; ?>

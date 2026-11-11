@@ -222,12 +222,16 @@ let group = L.featureGroup();
             fillOpacity: 0.22
         });
     } else if (Array.isArray(p.points) && p.points.length) {
-        layer = p.type === 'line'
+        layer = p.kind === 'prone' || p.type === 'line'
             ? L.polyline(p.points, { color: color, weight: 5 })
             : L.polygon(p.points, { color: color, weight: 3, fillColor: color, fillOpacity: 0.25 });
     }
     if (layer) {
-        layer.bindPopup(popup(p.name || 'Hazard zone', p.risk || p.barangay_name || ''));
+        const proneRisk = { '#ffed4a': 'Low', '#fd7e14': 'Medium', '#dc3545': 'High' }[String(p.color || '').toLowerCase()];
+        const detail = p.kind === 'prone'
+            ? (p.ptype || 'Other') + ' Prone - ' + (p.risk || proneRisk || 'High') + ' risk'
+            : (p.risk || p.barangay_name || '');
+        layer.bindPopup(popup(p.name || 'Hazard zone', detail));
         layer.addTo(group);
     }
 });
