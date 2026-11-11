@@ -216,6 +216,7 @@ let polyCount = 0;
 let pointCount = 0;
 let hasBoundary = MAPDATA.polygons.some(function (p) { return p.kind === 'boundary'; });
 let undoStack = [];
+let boundaryMask = null;
 
 let streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19, attribution: '&copy; OpenStreetMap'
@@ -233,6 +234,8 @@ let map = L.map('map', {
     zoom: startZoom,
     layers: [streets]
 });
+map.createPane('boundaryMaskPane');
+map.getPane('boundaryMaskPane').style.zIndex = 650;
 
 function markerIcon(color) {
     return L.divIcon({
@@ -241,6 +244,26 @@ function markerIcon(color) {
         iconSize: [22, 22],
         iconAnchor: [11, 11]
     });
+}
+
+function refreshBoundaryMask() {
+    if (boundaryMask) {
+        map.removeLayer(boundaryMask);
+        boundaryMask = null;
+    }
+    let boundary = MAPDATA.polygons.find(function (feature) {
+        return feature.kind === 'boundary' && Array.isArray(feature.points) && feature.points.length;
+    });
+    if (!boundary) return;
+    let worldRing = [[-85, -180], [-85, 180], [85, 180], [85, -180]];
+    boundaryMask = L.polygon([worldRing, boundary.points], {
+        pane: 'boundaryMaskPane',
+        stroke: false,
+        fillColor: '#ffffff',
+        fillOpacity: 1,
+        fillRule: 'evenodd',
+        interactive: false
+    }).addTo(map);
 }
 
 function setBasemap(name) {
@@ -321,6 +344,7 @@ function commitBoundary(points) {
     MAPDATA.polygons.push(feat);
     hasBoundary = true;
     drawFeature(feat);
+    refreshBoundaryMask();
     updateStep();
     setStatus('Boundary committed. You can now add hazard zones and markers.', true);
 }
@@ -386,7 +410,7 @@ function drawFeature(feat) {
             color: feat.color || '#0072C6',
             weight: 3,
             fillColor: feat.color || '#0072C6',
-            fillOpacity: feat.kind === 'prone' ? 0.35 : 0.25
+            fillOpacity: feat.kind === 'prone' ? 1 : 0.25
         });
         poly.feature = feat;
         poly.bindPopup(popupHtml(feat));
@@ -429,6 +453,7 @@ function attachLayerEvents() {
             ly.on('click', function () {
                 MAPDATA.polygons = MAPDATA.polygons.filter(function (p) { return p.id !== ly.feature.id; });
                 MAPDATA.points = MAPDATA.points.filter(function (p) { return p.id !== ly.feature.id; });
+                refreshBoundaryMask();
                 if (ly.feature.kind === 'boundary') hasBoundary = false;
                 layers.features.clearLayers();
                 snapshotLayers();
@@ -492,6 +517,7 @@ function renderLayers() {
     layers.features.clearLayers();
     MAPDATA.polygons.forEach(drawFeature);
     MAPDATA.points.forEach(drawFeature);
+    refreshBoundaryMask();
     attachLayerEvents();
     applyViewLock(hasBoundary);
     updateStep();
@@ -668,7 +694,7 @@ function init() {
                     color: PRONE_COLORS[curProneRisk] || '#e74c3c',
                     fillColor: PRONE_COLORS[curProneRisk] || '#e74c3c',
                     weight: 3,
-                    fillOpacity: 0.35
+                    fillOpacity: 1
                 }).addTo(map);
                 document.getElementById('cancelBtn').disabled = false;
             } else if (pendingPronePoints && pendingPronePoints.length >= 3) {

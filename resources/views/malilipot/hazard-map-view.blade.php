@@ -174,6 +174,8 @@ let map = L.map('vmap', {
     zoom: MAPDATA.zoom || 8,
     scrollWheelZoom: false
 });
+map.createPane('boundaryMaskPane');
+map.getPane('boundaryMaskPane').style.zIndex = 650;
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -224,7 +226,7 @@ let group = L.featureGroup();
     } else if (Array.isArray(p.points) && p.points.length) {
         layer = (p.kind === 'prone' ? p.type !== 'polygon' : p.type === 'line')
             ? L.polyline(p.points, { color: color, weight: 5 })
-            : L.polygon(p.points, { color: color, weight: 3, fillColor: color, fillOpacity: p.kind === 'prone' ? 0.35 : 0.25 });
+            : L.polygon(p.points, { color: color, weight: 3, fillColor: color, fillOpacity: p.kind === 'prone' ? 1 : 0.25 });
     }
     if (layer) {
         const proneRisk = { '#ffed4a': 'Low', '#fd7e14': 'Medium', '#dc3545': 'High' }[String(p.color || '').toLowerCase()];
@@ -245,7 +247,19 @@ let group = L.featureGroup();
 });
 
 group.addTo(map);
-if (group.getLayers().length) {
+const boundary = (MAPDATA.polygons || []).find(function (p) { return p.kind === 'boundary' && Array.isArray(p.points) && p.points.length; });
+if (boundary) {
+    const worldRing = [[-85, -180], [-85, 180], [85, 180], [85, -180]];
+    L.polygon([worldRing, boundary.points], {
+        pane: 'boundaryMaskPane',
+        stroke: false,
+        fillColor: '#ffffff',
+        fillOpacity: 1,
+        fillRule: 'evenodd',
+        interactive: false
+    }).addTo(map);
+    map.fitBounds(L.polygon(boundary.points).getBounds(), { padding: [40, 40] });
+} else if (group.getLayers().length) {
     map.fitBounds(group.getBounds().pad(0.15), { maxZoom: 16 });
 }
 </script>

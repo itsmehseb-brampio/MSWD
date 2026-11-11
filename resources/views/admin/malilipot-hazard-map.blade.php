@@ -48,6 +48,8 @@ const map = L.map('municipal-hazard-map', {
     zoom: MAPDATA.zoom,
     scrollWheelZoom: false
 });
+map.createPane('boundaryMaskPane');
+map.getPane('boundaryMaskPane').style.zIndex = 650;
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -81,7 +83,7 @@ const features = L.featureGroup();
         const isLine = polygon.kind === 'prone' ? polygon.type !== 'polygon' : polygon.type === 'line';
         const layer = isLine
             ? L.polyline(polygon.points, { color: color, weight: 7, opacity: 0.95, lineCap: 'round', lineJoin: 'round' })
-            : L.polygon(polygon.points, { color: color, fillColor: color, fillOpacity: polygon.kind === 'prone' ? 0.35 : 0.25 });
+            : L.polygon(polygon.points, { color: color, fillColor: color, fillOpacity: polygon.kind === 'prone' ? 1 : 0.25 });
         const proneRisk = { '#ffed4a': 'Low', '#fd7e14': 'Medium', '#dc3545': 'High' }[String(polygon.color || '').toLowerCase()];
         const detail = polygon.kind === 'prone'
             ? (polygon.ptype || 'Other') + ' Prone - ' + (polygon.risk || proneRisk || 'High') + ' risk'
@@ -104,7 +106,21 @@ const features = L.featureGroup();
 });
 
 features.addTo(map);
-if (features.getLayers().length) {
+const boundary = MAPDATA.polygons.find(function (polygon) {
+    return polygon.kind === 'boundary' && Array.isArray(polygon.points) && polygon.points.length;
+});
+if (boundary) {
+    const worldRing = [[-85, -180], [-85, 180], [85, 180], [85, -180]];
+    L.polygon([worldRing, boundary.points], {
+        pane: 'boundaryMaskPane',
+        stroke: false,
+        fillColor: '#ffffff',
+        fillOpacity: 1,
+        fillRule: 'evenodd',
+        interactive: false
+    }).addTo(map);
+    map.fitBounds(L.polygon(boundary.points).getBounds(), { padding: [40, 40] });
+} else if (features.getLayers().length) {
     map.fitBounds(features.getBounds().pad(0.15), { maxZoom: 16 });
 }
 </script>

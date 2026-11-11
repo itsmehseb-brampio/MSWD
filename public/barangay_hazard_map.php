@@ -279,6 +279,7 @@ let pendingProneFeature = null;
 let proneFreehand = null;
 let editProneMode = false;
 let currentProneColor = '#dc3545'; // default red
+let boundaryMask = null;
 
 function markerIcon(color, icon){
     return L.divIcon({
@@ -294,6 +295,8 @@ function initMap(){
     const zoom = MAPDATA.lat !== null ? (MAPDATA.zoom || 14) : 13;
 
     map = L.map('hazardMap', { zoomControl: true }).setView([lat, lng], zoom);
+    map.createPane('boundaryMaskPane');
+    map.getPane('boundaryMaskPane').style.zIndex = 650;
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 20, attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
@@ -306,7 +309,7 @@ function loadLayers(){
         const isLine = p.kind === 'prone' ? p.type !== 'polygon' : p.type === 'line';
         const layer = isLine
             ? L.polyline(p.points, { color: p.color || '#0072C6', weight: p.kind === 'prone' ? 10 : 6, opacity: 0.95, lineCap: 'round', lineJoin: 'round' })
-            : L.polygon(p.points, { color: p.color || '#0072C6', fillColor: p.color || '#0072C6', fillOpacity: p.kind === 'prone' ? 0.35 : 0.25, weight: 3 });
+            : L.polygon(p.points, { color: p.color || '#0072C6', fillColor: p.color || '#0072C6', fillOpacity: p.kind === 'prone' ? 1 : 0.25, weight: 3 });
         layer.addTo(map);
         const sub = p.kind === 'prone' ? 'Prone Area' + (p.ptype ? ': ' + p.ptype : '') : 'Municipality Boundary';
         layer.bindPopup(p.kind === 'prone'
@@ -325,11 +328,34 @@ function loadLayers(){
     });
 
     const boundary = polygons.find(p => p.kind === 'boundary');
-    if (boundary) applyViewLock();
+    if (boundary) {
+        refreshBoundaryMask();
+        applyViewLock();
+    }
 
     setLastSaved(MAPDATA.updated_at || null);
     updateStep();
     updateUndoBtn();
+}
+
+function refreshBoundaryMask(){
+    if (boundaryMask) {
+        map.removeLayer(boundaryMask);
+        boundaryMask = null;
+    }
+    const boundary = polygons.find(p => p.kind === 'boundary');
+    if (!boundary) return;
+    const rings = boundary.layer.getLatLngs();
+    const boundaryRings = Array.isArray(rings[0]) ? rings : [rings];
+    const worldRing = [[-85, -180], [-85, 180], [85, 180], [85, -180]];
+    boundaryMask = L.polygon([worldRing, ...boundaryRings], {
+        pane: 'boundaryMaskPane',
+        stroke: false,
+        fillColor: '#ffffff',
+        fillOpacity: 1,
+        fillRule: 'evenodd',
+        interactive: false
+    }).addTo(map);
 }
 
 function applyViewLock(){
@@ -399,6 +425,7 @@ function doUndo(){
         attachLayer(a.oldLayer, a.oldObj.id);
         polygons.splice(a.oldIndex, 0, a.oldObj);
     }
+    refreshBoundaryMask();
     updateStep();
     updateUndoBtn();
     hint('Undo: last change reversed.');
@@ -428,7 +455,7 @@ function pronePopup(name, type, color){
 
 function applyProneStyle(layer, color){
     if (layer instanceof L.Polygon) {
-        layer.setStyle({ color: color, fillColor: color, fillOpacity: 0.35, weight: 3 });
+        layer.setStyle({ color: color, fillColor: color, fillOpacity: 1, weight: 3 });
         return;
     }
     layer.setStyle({ color: color, weight: 10, opacity: 0.95, lineCap: 'round', lineJoin: 'round' });
@@ -654,6 +681,7 @@ function commitBoundary(layer, name){
     layer.bindPopup(featurePopup(name, meta.label, meta.icon));
     attachLayer(layer, id);
     polygons.push({ id: id, kind: 'boundary', name: name, layer });
+    refreshBoundaryMask();
     applyViewLock();
     updateStep();
     updateUndoBtn();
@@ -698,7 +726,7 @@ function onProneFreehandStart(e){
     proneFreehand.line = L.polygon(proneFreehand.points, {
         color: currentProneColor,
         fillColor: currentProneColor,
-        fillOpacity: 0.35,
+        fillOpacity: 1,
         weight: 3,
         dashArray: '6 4'
     }).addTo(map);
@@ -760,7 +788,8 @@ function attachLayer(layer, id){
             undoStack.push({ type: 'del_polygon', layer: polygons[pi].layer, index: pi, obj: polygons[pi] });
             map.removeLayer(polygons[pi].layer);
             polygons.splice(pi, 1);
-            updateStep(); updateUndoBtn();
+                refreshBoundaryMask();
+                updateStep(); updateUndoBtn();
             dirty = true;
             return;
         }

@@ -184,6 +184,8 @@ function initMap(){
     const zoom = MAPDATA.lat !== null ? (MAPDATA.zoom || 14) : 13;
 
     map = L.map('hazardMap', { zoomControl: true }).setView([lat, lng], zoom);
+    map.createPane('boundaryMaskPane');
+    map.getPane('boundaryMaskPane').style.zIndex = 650;
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 20, attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
@@ -195,7 +197,7 @@ function initMap(){
         const isLine = p.kind === 'prone' ? p.type !== 'polygon' : p.type === 'line';
         const layer = isLine
             ? L.polyline(p.points, { color: p.color || meta.color, weight: p.kind === 'prone' ? 10 : 6, opacity: 0.95, lineCap: 'round', lineJoin: 'round' })
-            : L.polygon(p.points, { color: p.color || meta.color, fillColor: p.color || meta.color, fillOpacity: p.kind === 'prone' ? 0.35 : 0.25, weight: 3 });
+            : L.polygon(p.points, { color: p.color || meta.color, fillColor: p.color || meta.color, fillOpacity: p.kind === 'prone' ? 1 : 0.25, weight: 3 });
         layer.addTo(map);
         const sub = p.kind === 'prone' ? 'Prone Area' + (p.ptype ? ': ' + p.ptype : '') : meta.label;
         layer.bindPopup(p.kind === 'prone'
@@ -214,10 +216,23 @@ function initMap(){
 
     const boundary = (MAPDATA.polygons || []).find(p => p.kind === 'boundary' && p.points && p.points.length);
     if (boundary) {
+        addBoundaryMask(boundary.points);
         const b = L.polygon(boundary.points).getBounds();
         if (b.isValid()) map.fitBounds(b, { padding: [40, 40] });
         map.on('zoomend', keepCentered);
     }
+}
+
+function addBoundaryMask(boundaryPoints){
+    const worldRing = [[-85, -180], [-85, 180], [85, 180], [85, -180]];
+    L.polygon([worldRing, boundaryPoints], {
+        pane: 'boundaryMaskPane',
+        stroke: false,
+        fillColor: '#ffffff',
+        fillOpacity: 1,
+        fillRule: 'evenodd',
+        interactive: false
+    }).addTo(map);
 }
 
 function normalizeProneType(type){
