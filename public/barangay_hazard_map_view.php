@@ -171,7 +171,7 @@ function initMap(){
     (MAPDATA.polygons || []).forEach(p => {
         if (!p.points || !p.points.length) return;
         const meta = VIEW_META[p.kind] || VIEW_META.prone;
-        const layer = (p.type === 'line')
+        const layer = (p.kind === 'prone' || p.type === 'line')
             ? L.polyline(p.points, { color: p.color || meta.color, weight: p.kind === 'prone' ? 10 : 6, opacity: 0.95, lineCap: 'round', lineJoin: 'round' })
             : L.polygon(p.points, { color: p.color || meta.color, fillColor: p.color || meta.color, fillOpacity: 0.25, weight: 3 });
         layer.addTo(map);

@@ -254,7 +254,7 @@ function initMap(){
 
 function loadLayers(){
     (MAPDATA.polygons || []).forEach(p => {
-        const isLine = p.type === 'line';
+        const isLine = p.kind === 'prone' || p.type === 'line';
         const layer = isLine
             ? L.polyline(p.points, { color: p.color || '#0072C6', weight: p.kind === 'prone' ? 10 : 6, opacity: 0.95, lineCap: 'round', lineJoin: 'round' })
             : L.polygon(p.points, { color: p.color || '#0072C6', fillColor: p.color || '#0072C6', fillOpacity: 0.25, weight: 3 });
@@ -672,7 +672,7 @@ function saveMap(){
     fd.append('map_lat', map.getCenter().lat.toFixed(6));
     fd.append('map_lng', map.getCenter().lng.toFixed(6));
     fd.append('map_zoom', map.getZoom());
-    fd.append('hazard_polygons', JSON.stringify(polygons.map(p => ({ id: p.id, kind: p.kind, name: p.name, ptype: p.ptype || null, color: p.color || (p.kind === 'prone' ? currentProneColor : TOOLS[p.kind]?.color || '#000000'), type: p.layer instanceof L.Polygon ? 'polygon' : 'line', points: toPoints(p.layer) }))));
+    fd.append('hazard_polygons', JSON.stringify(polygons.map(p => ({ id: p.id, kind: p.kind, name: p.name, ptype: p.ptype || null, color: p.color || (p.kind === 'prone' ? currentProneColor : TOOLS[p.kind]?.color || '#000000'), type: p.kind === 'prone' || !(p.layer instanceof L.Polygon) ? 'line' : 'polygon', points: toPoints(p.layer) }))));
     fd.append('hazard_points', JSON.stringify(markers.map(m => ({ id: m.id, kind: m.kind, name: m.name, color: TOOLS[m.kind]?.color || '#0072C6', lat: m.layer.getLatLng().lat, lng: m.layer.getLatLng().lng }))));
 
     fetch('hazard_map_api.php', { method: 'POST', body: fd })
