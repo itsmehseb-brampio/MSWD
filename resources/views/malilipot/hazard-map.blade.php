@@ -233,6 +233,11 @@ let map = L.map('map', {
     zoom: startZoom,
     layers: [streets]
 });
+map.createPane('pronePane');
+map.getPane('pronePane').style.zIndex = 410;
+const proneRenderer = L.svg({ pane: 'pronePane' });
+let proneClipLayer = null;
+let proneClipPath = null;
 
 function markerIcon(color) {
     return L.divIcon({
@@ -321,6 +326,7 @@ function commitBoundary(points) {
     MAPDATA.polygons.push(feat);
     hasBoundary = true;
     drawFeature(feat);
+    refreshProneClip();
     updateStep();
     setStatus('Boundary committed. You can now add hazard zones and markers.', true);
 }
@@ -374,24 +380,28 @@ function drawFeature(feat) {
         let line = L.polyline(feat.points || [], {
             color: feat.color || '#0072C6',
             weight: feat.kind === 'prone' ? 7 : 6,
-            opacity: 0.95
+            opacity: 0.95,
+            ...(feat.kind === 'prone' ? { renderer: proneRenderer } : {})
         });
         line.feature = feat;
         line.bindPopup(popupHtml(feat));
         line.on('click', onFeatureClick);
         line.addTo(layers.features);
+        if (feat.kind === 'prone') applyProneClip(line);
     } else if (feat.ptype === 'polygon' || Array.isArray(feat.points)) {
         let pts = feat.points || [];
         let poly = L.polygon(pts, {
             color: feat.color || '#0072C6',
             weight: 3,
             fillColor: feat.color || '#0072C6',
-            fillOpacity: feat.kind === 'prone' ? 1 : 0.25
+            fillOpacity: feat.kind === 'prone' ? 1 : 0.25,
+            ...(feat.kind === 'prone' ? { renderer: proneRenderer } : {})
         });
         poly.feature = feat;
         poly.bindPopup(popupHtml(feat));
         poly.on('click', onFeatureClick);
         poly.addTo(layers.features);
+        if (feat.kind === 'prone') applyProneClip(poly);
     } else if (feat.ptype === 'circle') {
         let circle = L.circle([feat.center.lat, feat.center.lng], {
             radius: feat.radius || 300,
@@ -492,10 +502,58 @@ function renderLayers() {
     layers.features.clearLayers();
     MAPDATA.polygons.forEach(drawFeature);
     MAPDATA.points.forEach(drawFeature);
+    refreshProneClip();
     orderProneLayersByRisk();
     attachLayerEvents();
     applyViewLock(hasBoundary);
     updateStep();
+}
+
+function refreshProneClip() {
+    map.off('zoomend moveend', updateProneClipPath);
+    if (proneClipLayer) {
+        map.removeLayer(proneClipLayer);
+        proneClipLayer = null;
+        proneClipPath?.parentNode?.remove();
+        proneClipPath = null;
+    }
+    const boundary = MAPDATA.polygons.find(function (feature) {
+        return feature.kind === 'boundary' && Array.isArray(feature.points) && feature.points.length;
+    });
+    if (!boundary) {
+        layers.features.eachLayer(function (layer) {
+            if (layer.feature && layer.feature.kind === 'prone') layer.getElement()?.removeAttribute('clip-path');
+        });
+        return;
+    }
+    proneClipLayer = L.polygon(boundary.points, {
+        renderer: proneRenderer, opacity: 0, fillOpacity: 0, weight: 0, interactive: false
+    }).addTo(map);
+    const svg = proneClipLayer.getElement()?.ownerSVGElement;
+    if (!svg) return;
+    const defs = svg.querySelector('defs') || svg.insertBefore(document.createElementNS('http://www.w3.org/2000/svg', 'defs'), svg.firstChild);
+    const clip = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath');
+    clip.id = 'prone-boundary-clip';
+    clip.setAttribute('clipPathUnits', 'userSpaceOnUse');
+    proneClipPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    proneClipPath.setAttribute('clip-rule', 'evenodd');
+    clip.appendChild(proneClipPath);
+    defs.appendChild(clip);
+    updateProneClipPath();
+    layers.features.eachLayer(function (layer) {
+        if (layer.feature && layer.feature.kind === 'prone') applyProneClip(layer);
+    });
+    map.off('zoomend moveend', updateProneClipPath);
+    map.on('zoomend moveend', updateProneClipPath);
+}
+
+function updateProneClipPath() {
+    const path = proneClipLayer?.getElement()?.getAttribute('d');
+    if (path && proneClipPath) proneClipPath.setAttribute('d', path);
+}
+
+function applyProneClip(layer) {
+    if (proneClipPath && layer.getElement()) layer.getElement().setAttribute('clip-path', 'url(#prone-boundary-clip)');
 }
 
 function orderProneLayersByRisk() {
@@ -685,8 +743,10 @@ function init() {
                     color: PRONE_COLORS[curProneRisk] || '#e74c3c',
                     fillColor: PRONE_COLORS[curProneRisk] || '#e74c3c',
                     weight: 3,
-                    fillOpacity: 1
+                    fillOpacity: 1,
+                    renderer: proneRenderer
                 }).addTo(map);
+                applyProneClip(proneTempLayer);
                 document.getElementById('cancelBtn').disabled = false;
             } else if (pendingPronePoints && pendingPronePoints.length >= 3) {
                 let pts = selectedPronePoints();

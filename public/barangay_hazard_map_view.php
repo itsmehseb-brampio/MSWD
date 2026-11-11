@@ -166,6 +166,9 @@ const VIEW_META = {
 };
 
 let map;
+let proneRenderer;
+let proneClipLayer = null;
+let proneClipPath = null;
 const PRONE_TYPES = ['Flood', 'Storm', 'Landslide', 'Volcanic', 'Earthquake', 'Fire', 'Erosion', 'Other'];
 const proneLayers = [];
 
@@ -184,6 +187,9 @@ function initMap(){
     const zoom = MAPDATA.lat !== null ? (MAPDATA.zoom || 14) : 13;
 
     map = L.map('hazardMap', { zoomControl: true }).setView([lat, lng], zoom);
+    map.createPane('pronePane');
+    map.getPane('pronePane').style.zIndex = 410;
+    proneRenderer = L.svg({ pane: 'pronePane' });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 20, attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
@@ -194,8 +200,8 @@ function initMap(){
         const proneType = normalizeProneType(p.ptype);
         const isLine = p.kind === 'prone' ? p.type !== 'polygon' : p.type === 'line';
         const layer = isLine
-            ? L.polyline(p.points, { color: p.color || meta.color, weight: p.kind === 'prone' ? 10 : 6, opacity: 0.95, lineCap: 'round', lineJoin: 'round' })
-            : L.polygon(p.points, { color: p.color || meta.color, fillColor: p.color || meta.color, fillOpacity: p.kind === 'prone' ? 1 : 0.25, weight: 3 });
+            ? L.polyline(p.points, { color: p.color || meta.color, weight: p.kind === 'prone' ? 10 : 6, opacity: 0.95, lineCap: 'round', lineJoin: 'round', ...(p.kind === 'prone' ? { renderer: proneRenderer } : {}) })
+            : L.polygon(p.points, { color: p.color || meta.color, fillColor: p.color || meta.color, fillOpacity: p.kind === 'prone' ? 1 : 0.25, weight: 3, ...(p.kind === 'prone' ? { renderer: proneRenderer } : {}) });
         layer.addTo(map);
         const sub = p.kind === 'prone' ? 'Prone Area' + (p.ptype ? ': ' + p.ptype : '') : meta.label;
         layer.bindPopup(p.kind === 'prone'
@@ -215,10 +221,42 @@ function initMap(){
 
     const boundary = (MAPDATA.polygons || []).find(p => p.kind === 'boundary' && p.points && p.points.length);
     if (boundary) {
+        setupProneClip(boundary.points);
         const b = L.polygon(boundary.points).getBounds();
         if (b.isValid()) map.fitBounds(b, { padding: [40, 40] });
         map.on('zoomend', keepCentered);
     }
+}
+
+function setupProneClip(boundaryPoints){
+    if (proneClipLayer) map.removeLayer(proneClipLayer);
+    proneClipPath?.parentNode?.remove();
+    proneClipLayer = L.polygon(boundaryPoints, {
+        renderer: proneRenderer, opacity: 0, fillOpacity: 0, weight: 0, interactive: false
+    }).addTo(map);
+    const svg = proneClipLayer.getElement()?.ownerSVGElement;
+    if (!svg) return;
+    const defs = svg.querySelector('defs') || svg.insertBefore(document.createElementNS('http://www.w3.org/2000/svg', 'defs'), svg.firstChild);
+    const clip = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath');
+    clip.id = 'prone-boundary-clip';
+    clip.setAttribute('clipPathUnits', 'userSpaceOnUse');
+    proneClipPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    proneClipPath.setAttribute('clip-rule', 'evenodd');
+    clip.appendChild(proneClipPath);
+    defs.appendChild(clip);
+    updateProneClipPath();
+    proneLayers.forEach(item => applyProneClip(item.layer));
+    map.off('zoomend moveend', updateProneClipPath);
+    map.on('zoomend moveend', updateProneClipPath);
+}
+
+function updateProneClipPath(){
+    const path = proneClipLayer?.getElement()?.getAttribute('d');
+    if (path && proneClipPath) proneClipPath.setAttribute('d', path);
+}
+
+function applyProneClip(layer){
+    if (proneClipPath && layer.getElement()) layer.getElement().setAttribute('clip-path', 'url(#prone-boundary-clip)');
 }
 
 function normalizeProneType(type){
@@ -239,7 +277,10 @@ function initProneFilters(){
         checkbox.addEventListener('change', function(){
             proneLayers.forEach(item => {
                 if (item.type !== type) return;
-                if (checkbox.checked) item.layer.addTo(map);
+                if (checkbox.checked) {
+                    item.layer.addTo(map);
+                    applyProneClip(item.layer);
+                }
                 else map.removeLayer(item.layer);
             });
             orderProneLayersByRisk();

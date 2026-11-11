@@ -48,6 +48,9 @@ const map = L.map('municipal-hazard-map', {
     zoom: MAPDATA.zoom,
     scrollWheelZoom: false
 });
+map.createPane('pronePane');
+map.getPane('pronePane').style.zIndex = 410;
+const proneRenderer = L.svg({ pane: 'pronePane' });
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -81,8 +84,8 @@ const proneLayers = [];
     } else if (Array.isArray(polygon.points) && polygon.points.length) {
         const isLine = polygon.kind === 'prone' ? polygon.type !== 'polygon' : polygon.type === 'line';
         const layer = isLine
-            ? L.polyline(polygon.points, { color: color, weight: 7, opacity: 0.95, lineCap: 'round', lineJoin: 'round' })
-            : L.polygon(polygon.points, { color: color, fillColor: color, fillOpacity: polygon.kind === 'prone' ? 1 : 0.25 });
+            ? L.polyline(polygon.points, { color: color, weight: 7, opacity: 0.95, lineCap: 'round', lineJoin: 'round', ...(polygon.kind === 'prone' ? { renderer: proneRenderer } : {}) })
+            : L.polygon(polygon.points, { color: color, fillColor: color, fillOpacity: polygon.kind === 'prone' ? 1 : 0.25, ...(polygon.kind === 'prone' ? { renderer: proneRenderer } : {}) });
         const proneRisk = { '#ffed4a': 'Low', '#fd7e14': 'Medium', '#dc3545': 'High' }[String(polygon.color || '').toLowerCase()];
         const detail = polygon.kind === 'prone'
             ? (polygon.ptype || 'Other') + ' Prone - ' + (polygon.risk || proneRisk || 'High') + ' risk'
@@ -111,9 +114,32 @@ const boundary = MAPDATA.polygons.find(function (polygon) {
     return polygon.kind === 'boundary' && Array.isArray(polygon.points) && polygon.points.length;
 });
 if (boundary) {
+    setupProneClip(boundary.points);
     map.fitBounds(L.polygon(boundary.points).getBounds(), { padding: [40, 40] });
 } else if (features.getLayers().length) {
     map.fitBounds(features.getBounds().pad(0.15), { maxZoom: 16 });
+}
+
+function setupProneClip(boundaryPoints) {
+    const clipLayer = L.polygon(boundaryPoints, {
+        renderer: proneRenderer, opacity: 0, fillOpacity: 0, weight: 0, interactive: false
+    }).addTo(map);
+    const svg = clipLayer.getElement().ownerSVGElement;
+    const defs = svg.querySelector('defs') || svg.insertBefore(document.createElementNS('http://www.w3.org/2000/svg', 'defs'), svg.firstChild);
+    const clip = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath');
+    clip.id = 'prone-boundary-clip';
+    clip.setAttribute('clipPathUnits', 'userSpaceOnUse');
+    const clipPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    clipPath.setAttribute('clip-rule', 'evenodd');
+    clip.appendChild(clipPath);
+    defs.appendChild(clip);
+    function updateClip() {
+        const path = clipLayer.getElement()?.getAttribute('d');
+        if (path) clipPath.setAttribute('d', path);
+    }
+    updateClip();
+    proneLayers.forEach(function (item) { item.layer.getElement()?.setAttribute('clip-path', 'url(#prone-boundary-clip)'); });
+    map.on('zoomend moveend', updateClip);
 }
 
 function orderProneLayersByRisk() {

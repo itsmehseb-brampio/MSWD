@@ -295,6 +295,9 @@ let editProneMode = false;
 let currentProneColor = '#dc3545'; // default red
 const PRONE_TYPES = ['Flood', 'Storm', 'Landslide', 'Volcanic', 'Earthquake', 'Fire', 'Erosion', 'Other'];
 const proneTypeVisibility = new Map();
+let proneRenderer;
+let proneClipLayer = null;
+let proneClipPath = null;
 
 function markerIcon(color, icon){
     return L.divIcon({
@@ -310,6 +313,9 @@ function initMap(){
     const zoom = MAPDATA.lat !== null ? (MAPDATA.zoom || 14) : 13;
 
     map = L.map('hazardMap', { zoomControl: true }).setView([lat, lng], zoom);
+    map.createPane('pronePane');
+    map.getPane('pronePane').style.zIndex = 410;
+    proneRenderer = L.svg({ pane: 'pronePane' });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 20, attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
@@ -321,8 +327,8 @@ function loadLayers(){
     (MAPDATA.polygons || []).forEach(p => {
         const isLine = p.kind === 'prone' ? p.type !== 'polygon' : p.type === 'line';
         const layer = isLine
-            ? L.polyline(p.points, { color: p.color || '#0072C6', weight: p.kind === 'prone' ? 10 : 6, opacity: 0.95, lineCap: 'round', lineJoin: 'round' })
-            : L.polygon(p.points, { color: p.color || '#0072C6', fillColor: p.color || '#0072C6', fillOpacity: p.kind === 'prone' ? 1 : 0.25, weight: 3 });
+            ? L.polyline(p.points, { color: p.color || '#0072C6', weight: p.kind === 'prone' ? 10 : 6, opacity: 0.95, lineCap: 'round', lineJoin: 'round', ...(p.kind === 'prone' ? { renderer: proneRenderer } : {}) })
+            : L.polygon(p.points, { color: p.color || '#0072C6', fillColor: p.color || '#0072C6', fillOpacity: p.kind === 'prone' ? 1 : 0.25, weight: 3, ...(p.kind === 'prone' ? { renderer: proneRenderer } : {}) });
         layer.addTo(map);
         const sub = p.kind === 'prone' ? 'Prone Area' + (p.ptype ? ': ' + p.ptype : '') : 'Municipality Boundary';
         layer.bindPopup(p.kind === 'prone'
@@ -342,6 +348,7 @@ function loadLayers(){
 
     const boundary = polygons.find(p => p.kind === 'boundary');
     if (boundary) {
+        refreshProneClip();
         applyViewLock();
     }
 
@@ -350,6 +357,47 @@ function loadLayers(){
     setLastSaved(MAPDATA.updated_at || null);
     updateStep();
     updateUndoBtn();
+}
+
+function refreshProneClip(){
+    map.off('zoomend moveend', updateProneClipPath);
+    if (proneClipLayer) {
+        map.removeLayer(proneClipLayer);
+        proneClipLayer = null;
+        proneClipPath?.parentNode?.remove();
+        proneClipPath = null;
+    }
+    const boundary = polygons.find(p => p.kind === 'boundary');
+    if (!boundary) {
+        polygons.filter(p => p.kind === 'prone').forEach(p => p.layer.getElement()?.removeAttribute('clip-path'));
+        return;
+    }
+    proneClipLayer = L.polygon(boundary.layer.getLatLngs(), {
+        renderer: proneRenderer, opacity: 0, fillOpacity: 0, weight: 0, interactive: false
+    }).addTo(map);
+    const svg = proneClipLayer.getElement()?.ownerSVGElement;
+    if (!svg) return;
+    const defs = svg.querySelector('defs') || svg.insertBefore(document.createElementNS('http://www.w3.org/2000/svg', 'defs'), svg.firstChild);
+    const clip = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath');
+    clip.id = 'prone-boundary-clip';
+    clip.setAttribute('clipPathUnits', 'userSpaceOnUse');
+    proneClipPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    proneClipPath.setAttribute('clip-rule', 'evenodd');
+    clip.appendChild(proneClipPath);
+    defs.appendChild(clip);
+    updateProneClipPath();
+    polygons.filter(p => p.kind === 'prone').forEach(p => applyProneClip(p.layer));
+    map.off('zoomend moveend', updateProneClipPath);
+    map.on('zoomend moveend', updateProneClipPath);
+}
+
+function updateProneClipPath(){
+    const path = proneClipLayer?.getElement()?.getAttribute('d');
+    if (path && proneClipPath) proneClipPath.setAttribute('d', path);
+}
+
+function applyProneClip(layer){
+    if (proneClipPath && layer.getElement()) layer.getElement().setAttribute('clip-path', 'url(#prone-boundary-clip)');
 }
 
 function normalizeProneType(type){
@@ -384,7 +432,10 @@ function initProneFilters(){
 function applyProneFilters(){
     polygons.filter(p => p.kind === 'prone').forEach(feature => {
         const visible = proneTypeVisibility.get(normalizeProneType(feature.ptype)) !== false;
-        if (visible) feature.layer.addTo(map);
+        if (visible) {
+            feature.layer.addTo(map);
+            applyProneClip(feature.layer);
+        }
         else map.removeLayer(feature.layer);
     });
     orderProneLayersByRisk();
@@ -466,6 +517,7 @@ function doUndo(){
         attachLayer(a.oldLayer, a.oldObj.id);
         polygons.splice(a.oldIndex, 0, a.oldObj);
     }
+    refreshProneClip();
     initProneFilters();
     updateStep();
     updateUndoBtn();
@@ -573,7 +625,7 @@ function setTool(tool){
         });
     } else if (meta.shape === 'line') {
         drawHandler = new L.Draw.Polyline(map, {
-            shapeOptions: { color: tool === 'prone' ? currentProneColor : meta.color, weight: 6, opacity: 0.95 }
+            shapeOptions: { color: tool === 'prone' ? currentProneColor : meta.color, weight: 6, opacity: 0.95, ...(tool === 'prone' ? { renderer: proneRenderer } : {}) }
         });
     } else {
         drawHandler = new L.Draw.Marker(map, { icon: markerIcon(meta.color, meta.icon) });
@@ -695,12 +747,14 @@ function closeProneModal(){
 
 function addProneArea(layer, name, ptype){
     undoStack.push({ type: 'add_polygon', layer: layer, index: polygons.length });
+    layer.options.renderer = proneRenderer;
     applyProneStyle(layer, currentProneColor);
     layer.addTo(map);
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     layer.bindPopup(pronePopup(name, ptype, currentProneColor));
     attachLayer(layer, id);
     polygons.push({ id: id, kind: 'prone', name: name, ptype: ptype, color: currentProneColor, type: layer instanceof L.Polygon ? 'polygon' : 'line', layer });
+    applyProneClip(layer);
     initProneFilters();
     updateStep();
     updateUndoBtn();
@@ -725,6 +779,7 @@ function commitBoundary(layer, name){
     layer.bindPopup(featurePopup(name, meta.label, meta.icon));
     attachLayer(layer, id);
     polygons.push({ id: id, kind: 'boundary', name: name, layer });
+    refreshProneClip();
     applyViewLock();
     updateStep();
     updateUndoBtn();
@@ -771,8 +826,10 @@ function onProneFreehandStart(e){
         fillColor: currentProneColor,
         fillOpacity: 1,
         weight: 3,
-        dashArray: '6 4'
+        dashArray: '6 4',
+        renderer: proneRenderer
     }).addTo(map);
+    applyProneClip(proneFreehand.line);
     document.getElementById('hazardMap').style.cursor = 'crosshair';
 }
 
@@ -810,6 +867,10 @@ function onProneFreehandEnd(e){
 }
 
 function showProneModal(layer){
+    if (map.hasLayer(layer)) map.removeLayer(layer);
+    layer.options.renderer = proneRenderer;
+    layer.addTo(map);
+    applyProneClip(layer);
     pendingProneLayer = layer;
     document.querySelector('#proneModal h5').innerHTML = '<i class="fas fa-triangle-exclamation"></i> Add Prone Area';
     document.getElementById('proneType').value = 'Flood';
@@ -831,6 +892,7 @@ function attachLayer(layer, id){
             undoStack.push({ type: 'del_polygon', layer: polygons[pi].layer, index: pi, obj: polygons[pi] });
             map.removeLayer(polygons[pi].layer);
             polygons.splice(pi, 1);
+            refreshProneClip();
                 updateStep(); updateUndoBtn();
             dirty = true;
             return;
