@@ -112,6 +112,7 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
 .hm-undocnt{background:#e8ecf0;border-radius:9px;padding:0 7px;font-size:0.68rem;color:#555;margin-left:auto;}
 .hm-tool .sw{width:12px;height:12px;border-radius:3px;margin-left:auto;flex-shrink:0;}
 .hm-prone-panel{background:#fff;border:1px solid #eee;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:7px;}
+.hm-prone-checklist{background:#fff;border:1px solid #eee;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:7px;}
 .hm-prone-title{font-size:0.78rem;font-weight:700;color:#444;}
 .hm-prone-help{font-size:0.68rem;color:#888;line-height:1.35;}
 .hm-prone-style-label{font-size:0.7rem;font-weight:600;color:#666;}
@@ -199,7 +200,7 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
                         <button type="button" class="hm-tool" data-tool="freehand" data-boundary="1" onclick="setTool('freehand')"><i class="fas fa-pen"></i><span class="hm-t-text"><b>Freehand</b><small>hold &amp; trace around</small></span></button>
                         <button type="button" class="hm-tool" data-tool="boundary" data-boundary="1" onclick="setTool('boundary')"><i class="fas fa-draw-polygon"></i><span class="hm-t-text"><b>Points</b><small>click corner by corner</small></span></button>
                         <div class="hm-t-label" style="margin-top:4px;">Hazards &amp; Facilities</div>
-                        <button type="button" class="hm-tool" data-tool="evac" onclick="setTool('evac')"><i class="fas fa-hospital"></i> Evacuation Center <span class="sw" style="background:#0072C6;"></span></button>
+                        <button type="button" class="hm-tool" data-tool="evac" onclick="setTool('evac')"><i class="fas fa-building"></i> Municipal Department <span class="sw" style="background:#0072C6;"></span></button>
                         <button type="button" class="hm-tool" data-tool="hall" onclick="setTool('hall')"><i class="fas fa-university"></i> Barangay Hall <span class="sw" style="background:#e8710a;"></span></button>
                         <button type="button" class="hm-tool" data-tool="school" onclick="setTool('school')"><i class="fas fa-school"></i> School <span class="sw" style="background:#28a745;"></span></button>
                         <div class="hm-t-label" style="margin-top:4px;">Edit</div>
@@ -226,6 +227,8 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
                             <span><i style="background:#fd7e14;"></i>Medium</span>
                             <span><i style="background:#dc3545;"></i>High / Critical</span>
                         </div>
+                    </div>
+                    <div class="hm-prone-checklist">
                         <div class="hm-prone-filter-title">Show prone areas</div>
                         <div id="editProneFilters" aria-label="Filter prone areas by type"></div>
                     </div>
@@ -245,11 +248,7 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
             <option value="Flood">Flood</option>
             <option value="Landslide">Landslide</option>
             <option value="Volcanic">Volcanic</option>
-            <option value="Earthquake">Earthquake</option>
-            <option value="Fire">Fire</option>
             <option value="Storm">Storm</option>
-            <option value="Erosion">Erosion</option>
-            <option value="Other">Other</option>
         </select>
         <label>Name</label>
         <input type="text" id="proneName" placeholder="e.g. River flood zone" maxlength="60">
@@ -277,7 +276,7 @@ const TOOLS = {
     boxcrop:  { label: 'Municipality Boundary', icon: 'fa-square', color: '#0072C6', shape: 'box' },
     freehand: { label: 'Municipality Boundary', icon: 'fa-pen', color: '#0072C6', shape: 'freehand' },
     prone:    { label: 'Prone Area',         icon: 'fa-triangle-exclamation', color: '#dc3545', shape: 'line' },
-    evac:     { label: 'Evacuation Center',  icon: 'fa-hospital', color: '#0072C6', shape: 'marker' },
+    evac:     { label: 'Municipal Department', icon: 'fa-building', color: '#0072C6', shape: 'marker' },
     hall:     { label: 'Barangay Hall',      icon: 'fa-university', color: '#e8710a', shape: 'marker' },
     school:   { label: 'School',             icon: 'fa-school', color: '#28a745', shape: 'marker' }
 };
@@ -293,7 +292,7 @@ let pendingProneFeature = null;
 let proneFreehand = null;
 let editProneMode = false;
 let currentProneColor = '#dc3545'; // default red
-const PRONE_TYPES = ['Flood', 'Storm', 'Landslide', 'Volcanic', 'Earthquake', 'Fire', 'Erosion', 'Other'];
+const PRONE_TYPES = ['Flood', 'Storm', 'Landslide', 'Volcanic'];
 const proneTypeVisibility = new Map();
 let proneRenderer;
 let proneClipLayer = null;
@@ -407,7 +406,7 @@ function normalizeProneType(type){
 
 function initProneFilters(){
     const container = document.getElementById('editProneFilters');
-    const types = [...new Set([...PRONE_TYPES, ...polygons.filter(p => p.kind === 'prone').map(p => normalizeProneType(p.ptype))])];
+    const types = PRONE_TYPES;
     container.replaceChildren();
     types.forEach(type => {
         if (!proneTypeVisibility.has(type)) proneTypeVisibility.set(type, type !== 'Volcanic');
@@ -697,7 +696,8 @@ function confirmProne(){
     if (pendingProneFeature) {
         const feature = pendingProneFeature;
         const name = document.getElementById('proneName').value.trim();
-        const ptype = document.getElementById('proneType').value;
+        const selectedType = document.getElementById('proneType').value;
+        const ptype = selectedType || feature.ptype || PRONE_TYPES[0];
         const color = document.getElementById('proneColor').value;
         if (!name) {
             document.getElementById('proneName').focus();
