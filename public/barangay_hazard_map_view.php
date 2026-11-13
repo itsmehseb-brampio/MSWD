@@ -68,9 +68,11 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
 .hm-legend .lg-line{width:26px;height:5px;border-radius:3px;display:inline-block;flex:none;}
 .hm-legend-divider{border:0;border-top:1px solid #eee;margin:13px 0;}
 .hm-risk-swatch{width:26px;height:6px;border-radius:4px;display:inline-block;flex:none;}
+.hm-prone-checklist{position:absolute;left:18px;bottom:18px;z-index:500;background:white;border:1px solid #eee;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,0.2);padding:16px 18px;font-size:0.9rem;max-height:40%;overflow-y:auto;width:240px;}
 .hm-prone-filter{display:flex;align-items:center;gap:10px;margin:9px 0;color:#444;font-size:0.92rem;cursor:pointer;}
 .hm-prone-filter input{width:18px;height:18px;accent-color:#0072C6;flex:none;}
 .hm-prone-filter-title{font-size:0.82rem;color:#666;font-weight:700;margin:9px 0 7px;}
+.hm-prone-checklist .hm-prone-filter-title{margin-top:0;}
 
 .hm-placeholder{width:100%;height:calc(100vh - 108px);min-height:340px;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 4px 18px rgba(0,0,0,0.12);display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;position:relative;}
 .hm-placeholder img{max-width:100%;max-height:100%;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.12);}
@@ -92,6 +94,7 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
 .hm-popup-risk .hm-risk-high{background:#fdecea;color:#c62828;}
 @media(max-width:700px){
     .hm-legend{right:12px;bottom:12px;width:min(320px,calc(100% - 24px));max-height:55%;padding:16px 18px;}
+    .hm-prone-checklist{left:12px;bottom:calc(55% + 24px);width:min(240px,calc(100% - 24px));max-height:30%;padding:12px 14px;}
 }
 </style>
 </head>
@@ -129,10 +132,11 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;overf
                     <div class="lg-item"><span class="hm-risk-swatch" style="background:#ffed4a;"></span> Prone area — Low risk</div>
                     <div class="lg-item"><span class="hm-risk-swatch" style="background:#fd7e14;"></span> Prone area — Medium risk</div>
                     <div class="lg-item"><span class="hm-risk-swatch" style="background:#dc3545;"></span> Prone area — High / Critical risk</div>
-                    <div class="lg-item"><span class="lg-ico" style="background:#0072C6;"><i class="fas fa-hospital"></i></span> Evacuation Center</div>
+                    <div class="lg-item"><span class="lg-ico" style="background:#0072C6;"><i class="fas fa-building"></i></span> Municipal Department</div>
                     <div class="lg-item"><span class="lg-ico" style="background:#e8710a;"><i class="fas fa-university"></i></span> Barangay Hall</div>
                     <div class="lg-item"><span class="lg-ico" style="background:#28a745;"><i class="fas fa-school"></i></span> School</div>
-                    <hr class="hm-legend-divider">
+                </div>
+                <div class="hm-prone-checklist">
                     <div class="hm-prone-filter-title">Show prone areas</div>
                     <div id="proneFilters" aria-label="Filter prone areas by type"></div>
                 </div>
@@ -160,7 +164,7 @@ const MAPDATA = <?php echo json_encode($mapData); ?>;
 const VIEW_META = {
     boundary: { label: 'Barangay Boundary', icon: 'fa-map-marker-alt', color: '#0072C6' },
     prone:    { label: 'Prone Area', icon: 'fa-triangle-exclamation', color: '#dc3545' },
-    evac:     { label: 'Evacuation Center', icon: 'fa-hospital', color: '#0072C6' },
+    evac:     { label: 'Municipal Department', icon: 'fa-building', color: '#0072C6' },
     hall:     { label: 'Barangay Hall', icon: 'fa-university', color: '#e8710a' },
     school:   { label: 'School', icon: 'fa-school', color: '#28a745' }
 };
@@ -169,7 +173,7 @@ let map;
 let proneRenderer;
 let proneClipLayer = null;
 let proneClipPath = null;
-const PRONE_TYPES = ['Flood', 'Storm', 'Landslide', 'Volcanic', 'Earthquake', 'Fire', 'Erosion', 'Other'];
+const PRONE_TYPES = ['Flood', 'Storm', 'Landslide', 'Volcanic'];
 const proneLayers = [];
 
 function markerIcon(color, icon){
@@ -266,7 +270,7 @@ function normalizeProneType(type){
 
 function initProneFilters(){
     const container = document.getElementById('proneFilters');
-    const types = [...new Set([...PRONE_TYPES, ...proneLayers.map(item => item.type)])];
+    const types = PRONE_TYPES;
     types.forEach(type => {
         const label = document.createElement('label');
         label.className = 'hm-prone-filter';
