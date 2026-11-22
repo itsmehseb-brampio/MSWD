@@ -140,7 +140,7 @@
             <div class="fg">
                 <label>Housing Type <span class="req">*</span></label>
                 <div class="radio-group">
-                    @php $housingTypes = ['Light Materials', 'Semi-Concrete', 'Fully Concrete']; @endphp
+                    @php $housingTypes = ['Wood', 'Cement', 'Mix']; @endphp
                     @foreach ($housingTypes as $ht)
                         <label class="radio-option">
                             <input type="radio" name="housing_type" value="{{ $ht }}" {{ ($report->housing_type ?? '') === $ht ? 'checked' : '' }} required>
@@ -187,12 +187,12 @@
             </div>
 
             <div class="section-hr">
-                <h4><i class="fas fa-id-card"></i> B2B ID Photo</h4>
+                <h4><i class="fas fa-id-card"></i> Back-to-Back ID with Head of Household's Signature</h4>
                 <div class="b2b-box">
                     @if ($report->b2b_id)
-                        <img src="{{ uimg($report->b2b_id) }}" alt="B2B ID">
+                        <img src="{{ uimg($report->b2b_id) }}" alt="Back-to-Back ID with Head of Household's Signature">
                     @else
-                        <div class="no-photo">No B2B ID</div>
+                        <div class="no-photo">No Back-to-Back ID uploaded</div>
                     @endif
                     <div><input type="file" name="b2b_id" accept="image/*"></div>
                 </div>

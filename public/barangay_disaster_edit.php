@@ -205,7 +205,7 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;}
                             <label>Housing Type <span class="req">*</span></label>
                             <div class="radio-group">
                                 <?php
-                                $housingTypes = ['Light Materials','Semi-Concrete','Fully Concrete'];
+                                $housingTypes = ['Wood','Cement','Mix'];
                                 foreach ($housingTypes as $ht):
                                     $checked = ($report['housing_type'] ?? '') === $ht ? 'checked' : '';
                                 ?>
@@ -258,13 +258,13 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;}
                         </div>
 
                         <div style="margin-top:15px;padding-top:15px;border-top:2px solid #e8e8e8;">
-                            <h4 style="font-size:0.85rem;color:#0072C6;margin-bottom:10px;"><i class="fas fa-id-card"></i> B2B ID Photo</h4>
+                            <h4 style="font-size:0.85rem;color:#0072C6;margin-bottom:10px;"><i class="fas fa-id-card"></i> Back-to-Back ID with Head of Household's Signature</h4>
                             <div style="text-align:center;">
                                 <?php $b2b = $report['b2b_id'] ?? null; ?>
                                 <?php if ($b2b && file_exists("uploads/$b2b")): ?>
                                 <img src="uploads/<?php echo $b2b; ?>" style="max-width:150px;border:1px solid #ddd;border-radius:6px;margin-bottom:6px;">
                                 <?php else: ?>
-                                <div style="border:1px dashed #ccc;border-radius:6px;padding:20px;display:inline-block;color:#ccc;font-size:12px;margin-bottom:6px;">No B2B ID</div>
+                                <div style="border:1px dashed #ccc;border-radius:6px;padding:20px;display:inline-block;color:#ccc;font-size:12px;margin-bottom:6px;">No Back-to-Back ID uploaded</div>
                                 <?php endif; ?>
                                 <div><input type="file" name="b2b_id" accept="image/*" style="font-size:11px;"></div>
                             </div>

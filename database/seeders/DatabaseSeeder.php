@@ -26,7 +26,7 @@ class DatabaseSeeder extends Seeder
         ['Head of Household', 'household_head', 'text', '', 1],
         ['Number of Family Members', 'family_members', 'number', '', 0],
         ['Full Address', 'full_address', 'textarea', '', 1],
-        ['Housing Type', 'housing_type', 'text', '', 0],
+        ['Housing Type', 'housing_type', 'select', "Wood\nCement\nMix", 1],
         ['Extent of Damage', 'damage_extent', 'select', "None\nPartially\nTotally", 1],
         ['Description / Additional Details', 'description', 'textarea', '', 0],
     ];

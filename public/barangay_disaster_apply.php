@@ -269,6 +269,11 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;}
                         <?php foreach ($fields as $idx => $f):
                             $name = $f['field_name'];
                             $opts = !empty($f['field_options']) ? explode("\n", $f['field_options']) : [];
+                            if ($name === 'housing_type') {
+                                $opts = ['Wood', 'Cement', 'Mix'];
+                                $f['field_type'] = 'select';
+                                $f['is_required'] = 1;
+                            }
                             $req = $f['is_required'] ? '<span class="req">*</span>' : '';
                             $reqAttr = $f['is_required'] ? 'required' : '';
                         ?>
@@ -318,11 +323,11 @@ body{font-family:'Segoe UI',sans-serif;background:#f5f7fa;min-height:100vh;}
 
                         <!-- B2B ID & Signatures -->
                         <div class="b2b-section">
-                            <div class="b2b-section-title"><i class="fas fa-id-card"></i> B2B ID</div>
+                            <div class="b2b-section-title"><i class="fas fa-id-card"></i> Back-to-Back ID with Head of Household's Signature</div>
                             <div class="b2b-single">
                                 <div class="b2b-id-box" id="preview_b2b_id1">
                                     <i class="fas fa-camera"></i>
-                                    <span>Upload ID Photo</span>
+                                    <span>Upload Back-to-Back ID with Head of Household's Signature</span>
                                     <input type="file" name="b2b_id1" accept="image/*" onchange="previewB2B(this,'b2b_id1')">
                                 </div>
                             </div>

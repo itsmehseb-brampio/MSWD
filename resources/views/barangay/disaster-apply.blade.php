@@ -184,6 +184,12 @@
                         $reqAttr = $f->is_required ? 'required' : '';
                         $options = array_filter(array_map('trim', explode('|', (string) $f->field_options)));
                         $skip = str_starts_with($name, 'pic') || str_starts_with($name, 'b2b');
+                        if ($name === 'housing_type') {
+                            $options = ['Wood', 'Cement', 'Mix'];
+                            $f->field_type = 'select';
+                            $req = '<span class="req">*</span>';
+                            $reqAttr = 'required';
+                        }
                     @endphp
                     @continue($skip)
 
@@ -243,11 +249,11 @@
                 </div>
 
                 <div class="b2b-section">
-                    <div class="form-section-title"><i class="fas fa-id-card"></i> B2B ID</div>
+                    <div class="form-section-title"><i class="fas fa-id-card"></i> Back-to-Back ID with Head of Household's Signature</div>
                     <div class="b2b-single">
                         <div class="b2b-id-box" id="preview_b2b_id1">
                             <i class="fas fa-camera"></i>
-                            <span>Upload ID Photo</span>
+                            <span>Upload Back-to-Back ID with Head of Household's Signature</span>
                             <input type="file" name="b2b_id1" accept="image/*" onchange="previewB2B(this, 'b2b_id1')">
                         </div>
                     </div>
