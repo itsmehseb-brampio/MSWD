@@ -9,7 +9,7 @@
  */
 session_start();
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: admin_login.php");
+    header("Location: admin_admin_login.php");
     exit();
 }
 require 'db.php';

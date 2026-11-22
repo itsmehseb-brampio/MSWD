@@ -5,47 +5,21 @@ require 'db.php';
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $role = $_POST['role'] ?? 'admin';
     $username = trim($_POST['username']);
     $password = trim($_POST['password']);
+    $stmt = $conn->prepare("SELECT * FROM barangays WHERE barangay_name = ? OR username = ?");
+    $stmt->bind_param("ss", $username, $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
     $loggedIn = false;
-
-    $attempts = ($role == 'barangay') ? ['barangay', 'admin'] : ['admin', 'barangay'];
-
-    foreach ($attempts as $attemptRole) {
-        if ($attemptRole == 'admin') {
-            $stmt = $conn->prepare("SELECT * FROM admins WHERE username = ?");
-            $stmt->bind_param("s", $username);
-            $stmt->execute();
-            $result = $stmt->get_result();
-
-            if ($result->num_rows === 1) {
-                $admin = $result->fetch_assoc();
-                if (password_verify($password, $admin['password'])) {
-                    $_SESSION['admin_id'] = $admin['id'];
-                    $_SESSION['admin_username'] = $admin['username'];
-                    $loggedIn = true;
-                    header("Location: admin_dashboard.php");
-                    exit;
-                }
-            }
-        } else {
-            $stmt = $conn->prepare("SELECT * FROM barangays WHERE barangay_name = ?");
-            $stmt->bind_param("s", $username);
-            $stmt->execute();
-            $result = $stmt->get_result();
-
-            if ($result->num_rows >= 1) {
-                $barangay = $result->fetch_assoc();
-                if (password_verify($password, $barangay['password'])) {
-                    $_SESSION['barangay_id'] = $barangay['barangay_id'];
-                    $_SESSION['barangay_name'] = $barangay['barangay_name'];
-                    $loggedIn = true;
-                    header("Location: barangay_dashboard.php");
-                    exit;
-                }
-            }
+    while ($barangay = $result->fetch_assoc()) {
+        if (password_verify($password, $barangay['password'])) {
+            $_SESSION['barangay_id'] = $barangay['barangay_id'];
+            $_SESSION['barangay_name'] = $barangay['barangay_name'];
+            $loggedIn = true;
+            header("Location: barangay_dashboard.php");
+            exit;
         }
     }
 
@@ -127,37 +101,6 @@ body {
 .login-right p {
     color: #666;
     margin-bottom: 30px;
-}
-
-.role-toggle {
-    display: flex;
-    background: #f1f1f1;
-    border-radius: 10px;
-    padding: 4px;
-    margin-bottom: 25px;
-    gap: 4px;
-}
-
-.role-toggle label {
-    flex: 1;
-    text-align: center;
-    padding: 12px 16px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.95rem;
-    color: #555;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.role-toggle label.active {
-    background: linear-gradient(90deg, #0072C6, #005999);
-    color: white;
-    box-shadow: 0 3px 10px rgba(0,114,198,0.3);
-}
-
-.role-toggle input {
-    display: none;
 }
 
 .form-group {
@@ -283,8 +226,8 @@ body {
     </div>
     
     <div class="login-right">
-        <h2>MSWD System Login</h2>
-        <p>Sign in with your MSWD employee or barangay account</p>
+        <h2>Barangay Staff Login</h2>
+        <p>Sign in with your barangay account</p>
         
         <?php if($message != ''): ?>
             <div class="error-message">
@@ -304,20 +247,9 @@ body {
         ?>
         
         <form method="POST">
-            <div class="role-toggle">
-                <label class="active" id="labelAdmin">
-                    <input type="radio" name="role" value="admin" checked onchange="switchRole('admin')">
-                    <i class="fas fa-user-tie"></i> MSWD Staff
-                </label>
-                <label id="labelBarangay">
-                    <input type="radio" name="role" value="barangay" onchange="switchRole('barangay')">
-                    <i class="fas fa-building"></i> Barangay Staff
-                </label>
-            </div>
-
             <div class="form-group" style="position:relative;">
-                <label id="usernameLabel"><i class="fas fa-user"></i> Username</label>
-                <input type="text" name="username" id="usernameInput" placeholder="Enter your username" required autocomplete="off" oninput="showSuggestions()" onfocus="showSuggestions()">
+                <label id="usernameLabel"><i class="fas fa-building"></i> Barangay Account Name</label>
+                <input type="text" name="username" id="usernameInput" placeholder="Start typing barangay name..." required autocomplete="off" oninput="showSuggestions()" onfocus="showSuggestions()">
                 <div id="suggestions" class="suggestions-box"></div>
             </div>
             
@@ -336,33 +268,7 @@ body {
 
 <script>
 const barangays = <?php echo json_encode(array_values($barNames)); ?>;
-const isBarangayMode = () => document.querySelector('input[name="role"]:checked').value === 'barangay';
-
-function switchRole(role) {
-    const adminLabel = document.getElementById('labelAdmin');
-    const barangayLabel = document.getElementById('labelBarangay');
-    const usernameLabel = document.getElementById('usernameLabel');
-    const input = document.getElementById('usernameInput');
-
-    adminLabel.classList.toggle('active', role === 'admin');
-    barangayLabel.classList.toggle('active', role === 'barangay');
-
-    if (role === 'barangay') {
-        usernameLabel.innerHTML = '<i class="fas fa-building"></i> Barangay Account Name';
-        input.placeholder = 'Start typing barangay name...';
-    } else {
-        usernameLabel.innerHTML = '<i class="fas fa-user"></i> Employee Username';
-        input.placeholder = 'Enter your employee username';
-    }
-    document.getElementById('suggestions').style.display = 'none';
-}
-
 function showSuggestions() {
-    if (!isBarangayMode()) {
-        document.getElementById('suggestions').style.display = 'none';
-        return;
-    }
-
     const input = document.getElementById('usernameInput').value.toLowerCase();
     const box = document.getElementById('suggestions');
     
